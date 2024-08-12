@@ -19,16 +19,19 @@ TABLES = {
 COLUMNS = {
     0: 'id',
     1: 'tg_id',
-    2: '',
+    2: 'type_id',
     3: 'language',
     4: 'stage_id',
     5: 'choice_id',
     6: 'result_choice',
     7: 'phrase_id',
-    8: 'text',
-    9: 'media',
-    10: 'keyboard',
-    11: 'msg_id'
+    8: 'text_now',
+    9: 'media_now',
+    10: 'keyboard_now',
+    11: 'msg_id',
+    12: 'text_previous',
+    13: 'media_previous',
+    14: 'keyboard_previous',
 }
 
 
@@ -64,6 +67,16 @@ async def db(table=1, filters=None, method=0, data=None, func=0, offset=0, order
         for index_column, filter_value in filters.items():
             column = COLUMNS[index_column]
             query = query.filter(eval(f'{table_class.__name__}.{column}{filter_value}'))
+
+        if func == 2:
+            # Добавление данных
+            if not data: data = dict()
+            new_entity = table_class(**{COLUMNS[index_column]: value for index_column, value in data.items()})
+            session.add(new_entity)
+            session.commit()
+
+            return True
+
         if order_by:
             index_column, direction = order_by
             column = COLUMNS[index_column]
@@ -74,6 +87,7 @@ async def db(table=1, filters=None, method=0, data=None, func=0, offset=0, order
 
         if offset:
             query = query.offset(offset)
+
         if method == 0:
             entity = query.first()
             if entity is None: return None
@@ -82,6 +96,7 @@ async def db(table=1, filters=None, method=0, data=None, func=0, offset=0, order
             entities = query.all()
         elif method == 2:
             return query.count()
+
         if func == 0:
             # Возвращение данных
             if data is None: data = list()
@@ -111,15 +126,6 @@ async def db(table=1, filters=None, method=0, data=None, func=0, offset=0, order
                     if hasattr(entity, column):
                         setattr(entity, column, value)
             session.commit()
-            return True
-
-        elif func == 2:
-            # Добавление данных
-            if not data: data = dict()
-            new_entity = table_class(**{COLUMNS[index_column]: value for index_column, value in data.items()})
-            session.add(new_entity)
-            session.commit()
-
             return True
 
         elif func == 3:

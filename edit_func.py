@@ -6,22 +6,20 @@ from bot import *
 from database.db_operation import db
 
 
-async def send(call: CallbackQuery = None, message: Message = None, msg: tuple = None, back=False):
+async def edit(tg_id, msg):
     if call:
         user = call.from_user
         message = call.message
     else:
         user = message.from_user
     tg_id = user.id
-    if not msg:
-        msg = await find_plot_message(tg_id, back)
-    msg = await update_msg(msg=msg, user=user)
+    msg = await find_plot_message(tg_id, back)
 
     msg_media = None if 'media' not in msg else msg['media']
     msg_text = message.caption if 'text' not in msg else msg['text']
     msg_keyboard = message.reply_markup if 'keyboard' not in msg else msg['keyboard']
 
-    if msg_media is not None:
+    if msg_media:
         await message.edit_media(media=msg_media, text=msg_text, reply_markup=msg_keyboard)
     else:
         await message.edit_caption(caption=msg_text, reply_markup=msg_keyboard)

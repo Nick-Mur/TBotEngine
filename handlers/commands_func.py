@@ -7,6 +7,9 @@ from send_func import update_msg
 from bot import *
 
 
+from text.messages.messages_0 import message_0_0
+
+
 router = Router()
 
 
@@ -32,11 +35,7 @@ async def start(message: Message):
     tg_id = message.from_user.id
     user = await db(table=0, filters={1: tg_id}, method=2, data=0)
     if not user:
-        await db(table=0, data={1: tg_id}, func=2, method=1)
-        await db(data={1: tg_id, 11: message.message_id}, func=2, method=1)
-        save_data = await db(filters={1: tg_id}, data=[8, 9, 10])
-        msg = {'text': save_data[0], 'media': save_data[1], 'keyboard': save_data[2]}
-        msg = await update_msg(msg=msg, user=message.from_user, new_media=True)
+        await db(table=0, data={1: tg_id}, func=2)
+        await db(data={1: tg_id, 11: message.message_id}, func=2)
+        msg = await update_msg(msg=message_0_0[0], user=message.from_user, new_media=True)
         await message.answer_photo(photo=msg['media'], caption=msg['text'], reply_markup=msg['keyboard'])
-    else:
-        await save(message)
