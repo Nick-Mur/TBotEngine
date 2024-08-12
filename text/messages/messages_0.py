@@ -1,7 +1,3 @@
-from text.keyboards.keyboards_0 import *
-from text.media.media_0 import *
-
-
 text, media, keyboard = 'text', 'media', 'keyboard'
 
 

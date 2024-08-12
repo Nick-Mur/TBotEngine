@@ -1,7 +1,7 @@
 from database.db_operation import *
 
 
-from send_func import update_msg
+from text.msg_func import update_msg
 
 
 from bot import *
@@ -37,5 +37,5 @@ async def start(message: Message):
     if not user:
         await db(table=0, data={1: tg_id}, func=2)
         await db(data={1: tg_id, 11: message.message_id}, func=2)
-        msg = await update_msg(msg=message_0_0[0], user=message.from_user, new_media=True)
+        msg = await update_msg(msg=message_0_0[0], user=message.from_user, new_media=True, message=message)
         await message.answer_photo(photo=msg['media'], caption=msg['text'], reply_markup=msg['keyboard'])

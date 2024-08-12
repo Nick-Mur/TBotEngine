@@ -6,6 +6,8 @@ from edit_func import edit
 
 from find_message.find_message_0 import *
 
+from text.msg_func import update_msg
+
 
 router = Router()
 
@@ -31,8 +33,9 @@ async def next_0_msg(call: CallbackQuery):
         stage_id = await find_message_0(stage_id=stage_id, choice=choice)
         message = await return_variable(f'message_0_{stage_id}')
         msg = message[0]
+    msg = update_msg(msg=msg, user=call.from_user)
     await db(filters={1: tg_id, 2: 0}, data={4: stage_id, 7: phrase_id}, func=1)
-    await edit(tg_id=tg_id, msg=msg)
+    await edit(tg_id=tg_id, msg=msg, message=call.message)
 
 
 @router.callback_query()
