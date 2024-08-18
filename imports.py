@@ -12,5 +12,8 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 
 from special.special_func import *
 
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DATETIME
 from database.data.db_session import SqlAlchemyBase
+
+
+from datetime import *

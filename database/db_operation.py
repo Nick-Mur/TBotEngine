@@ -9,6 +9,7 @@ from traceback import print_exc
 
 
 DB_PATH = 'database\project.db'
+DEBUG = True
 
 TABLES = {
     0: User,
@@ -25,13 +26,10 @@ COLUMNS = {
     5: 'choice_id',
     6: 'result_choice',
     7: 'phrase_id',
-    8: 'text_now',
-    9: 'media_now',
-    10: 'keyboard_now',
+    8: '',
+    9: '',
+    10: '',
     11: 'msg_id',
-    12: 'text_previous',
-    13: 'media_previous',
-    14: 'keyboard_previous',
 }
 
 
@@ -136,7 +134,8 @@ async def db(table=1, filters=None, method=0, data=None, func=0, offset=0, order
             return True
 
     except Exception:
-        print_exc()
+        if DEBUG:
+            print_exc()
         session.rollback()
         return False
 
