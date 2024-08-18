@@ -33,7 +33,6 @@ async def next_0_msg(call: CallbackQuery):
         stage_id = await find_next_message_0(stage_id=stage_id, choice=choice)
         message = await return_variable(f'message_0_{stage_id}')
         msg = message[0]
-    print(msg)
     msg = await update_msg(msg=msg, user=call.from_user)
     await db(filters={1: tg_id, 2: 0}, data={4: stage_id, 7: phrase_id}, func=1)
     await edit(msg=msg, message=call.message)
@@ -50,7 +49,6 @@ async def back_0_msg(call: CallbackQuery):
     msg = message[phrase_id]
     if phrase_id < 0:
         phrase_id = len(msg) - 1
-    print(msg)
     msg = await update_msg(msg=msg, user=call.from_user)
     await db(filters={1: tg_id, 2: 0}, data={4: stage_id, 7: phrase_id}, func=1)
     await edit(msg=msg, message=call.message)
