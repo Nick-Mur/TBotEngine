@@ -6,6 +6,11 @@ from text.media.media_0 import *
 from text.keyboards.keyboards_0 import *
 from text.messages.messages_0 import *
 
+from text.phrases.ru_phrases.phrases_1.phrases import *
+from text.media.media_1 import *
+from text.messages.messages_1 import *
+
+
 
 async def get_payment_token():
     return config.payment_token.get_secret_value()

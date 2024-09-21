@@ -17,3 +17,8 @@ from database.data.db_session import SqlAlchemyBase
 
 
 from datetime import *
+
+from traceback import print_exc
+
+
+DEBUG = True

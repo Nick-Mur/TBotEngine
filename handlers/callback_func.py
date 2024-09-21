@@ -6,6 +6,8 @@ from find_message.find_message_0 import *
 
 from text.msg_func import update_msg
 
+from bot import bot
+
 
 router = Router()
 
@@ -52,6 +54,15 @@ async def back_0_msg(call: CallbackQuery):
     msg = await update_msg(msg=msg, user=call.from_user)
     await db(filters={1: tg_id, 2: 0}, data={4: stage_id, 7: phrase_id}, func=1)
     await edit(msg=msg, message=call.message)
+
+
+@router.callback_query(lambda call: call.data == 'close_ad')
+async def close_ads(call: CallbackQuery):
+    try:
+        await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
+    except:
+        if DEBUG:
+            print_exc()
 
 
 @router.callback_query()

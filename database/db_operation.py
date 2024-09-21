@@ -5,11 +5,11 @@ from database.data.choices import Choices
 
 from sqlalchemy import desc
 
-from traceback import print_exc
+from imports import DEBUG, print_exc
 
 
 DB_PATH = 'database\project.db'
-DEBUG = True
+
 
 TABLES = {
     0: User,
