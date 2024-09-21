@@ -1,4 +1,4 @@
-from database.db_operation import *
+from database.db_operation import db
 
 
 async def find_next_message_0(stage_id, choice):

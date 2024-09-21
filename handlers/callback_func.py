@@ -1,12 +1,21 @@
-from imports import *
-
 from edit_func import edit
 
-from find_message.find_message_0 import *
+from find_message.find_message_0 import find_next_message_0, find_previous_message_0
 
 from text.msg_func import update_msg
 
 from bot import bot
+
+from aiogram import Router
+from aiogram.types import CallbackQuery
+
+from database.db_operation import db
+
+from consts import DEBUG
+
+from special.special_func import return_variable
+
+from traceback import print_exc
 
 
 router = Router()

@@ -1,5 +1,4 @@
-from imports import *
-
+from database.data.db_imports import *
 
 class Save(SqlAlchemyBase):
     __tablename__ = 'save'

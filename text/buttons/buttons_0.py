@@ -1,4 +1,5 @@
-from imports import *
+from aiogram.types import InlineKeyboardButton
+
 
 Button = InlineKeyboardButton
 

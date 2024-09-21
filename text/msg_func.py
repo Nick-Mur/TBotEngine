@@ -1,10 +1,9 @@
-from imports import *
-
-
 from database.db_operation import db
 
+from consts import MEDIA_PHOTO
 
-MEDIA_PHOTO = 'media/photo/'
+from special.special_func import return_variable
+from aiogram.types import Message, InlineKeyboardMarkup, InputMediaPhoto, FSInputFile
 
 
 async def update_msg(msg: dict, user: Message, new_media=False):

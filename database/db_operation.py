@@ -1,36 +1,10 @@
 from database.data.db_session import *
-from database.data.user import User
-from database.data.save import Save
-from database.data.choices import Choices
+
+from database.db_consts import *
 
 from sqlalchemy import desc
-
-from imports import DEBUG, print_exc
-
-
-DB_PATH = 'database\project.db'
-
-
-TABLES = {
-    0: User,
-    1: Save,
-    2: Choices
-}
-
-COLUMNS = {
-    0: 'id',
-    1: 'tg_id',
-    2: 'type_id',
-    3: 'language',
-    4: 'stage_id',
-    5: 'choice_id',
-    6: 'result_choice',
-    7: 'phrase_id',
-    8: '',
-    9: '',
-    10: '',
-    11: 'msg_id',
-}
+from consts import DEBUG, DB_PATH
+from traceback import print_exc
 
 
 async def db(table=1, filters=None, method=0, data=None, func=0, offset=0, order_by=None, special_filter=False):

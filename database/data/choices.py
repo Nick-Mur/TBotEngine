@@ -1,4 +1,4 @@
-from imports import *
+from database.data.db_imports import *
 
 
 class Choices(SqlAlchemyBase):

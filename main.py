@@ -1,5 +1,6 @@
 # импорты
-from bot import *
+from bot import dp, bot
+from asyncio import run
 
 from handlers import text_func, commands_func, callback_func
 
@@ -15,4 +16,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run(main())

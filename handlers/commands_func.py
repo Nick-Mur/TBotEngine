@@ -4,8 +4,18 @@ from database.db_operation import db
 from text.msg_func import update_msg
 
 
-from bot import *
+from aiogram import Router
+from aiogram.filters import Command
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
+from consts import DEBUG
+from traceback import print_exc
+
+from bot import bot
+
+from special.special_func import return_variable
+
+import asyncio
 
 router = Router()
 
@@ -66,7 +76,7 @@ async def get_ads(message: Message):
     from random import choice
     from special.decorate_text import exp_bl
 
-
+    Button = InlineKeyboardButton
     a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='A', callback_data='close_ad')]])
 
     msg = await update_msg(msg=choice(messages_1), user=message.from_user, new_media=True)
