@@ -1,12 +1,13 @@
 from database.data.user import User
 from database.data.save import Save
 from database.data.choices import Choices
-
+from database.data.game import Game
 
 TABLES = {
     0: User,
     1: Save,
-    2: Choices
+    2: Choices,
+    3: Game
 }
 
 COLUMNS = {
@@ -18,7 +19,7 @@ COLUMNS = {
     5: 'choice_id',
     6: 'result_choice',
     7: 'phrase_id',
-    8: '',
+    8: 'tokens',
     9: '',
     10: '',
     11: 'msg_id',

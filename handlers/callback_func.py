@@ -65,8 +65,12 @@ async def back_0_msg(call: CallbackQuery):
     await edit(msg=msg, message=call.message)
 
 
-@router.callback_query(lambda call: call.data == 'close_ad')
-async def close_ads(call: CallbackQuery):
+@router.callback_query(lambda call: 'close' in call.data)
+async def close_message(call: CallbackQuery):
+    if 'ad' in call.data:
+        tg_id = call.from_user.id
+        tokens = await db(table=3, data=8, filters={1: tg_id})
+        await db(table=3, filters={1: tg_id}, data=tokens + 1, func=1)
     try:
         await bot.delete_message(chat_id=call.message.chat.id, message_id=call.message.message_id)
     except:

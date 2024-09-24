@@ -5,7 +5,7 @@ from text.msg_func import update_msg
 
 
 from aiogram import Router
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from consts import DEBUG
@@ -46,38 +46,51 @@ async def save(message: Message):
         # Ждем сутки (в секундах)
         await asyncio.sleep(24 * 60 * 60)
         # Удаляем сообщение
-        await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+        try:
+            await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+        except:
+            if DEBUG:
+                print_exc()
 
 
 @router.message(Command("start"))
-async def start(message: Message):
+async def start(message: Message, command: CommandObject):
     from text.messages.messages_0 import message_0_0
 
 
     tg_id = message.from_user.id
     user = await db(table=0, filters={1: tg_id}, method=2, data=0)
     if not user:
+        referral_link = command.args
+        if referral_link.isdigit() and await db(table=0, filters={1: int(referral_link)}, method=2, data=0):
+            tokens = await db(table=3, data=8, filters={1: referral_link})
+            await db(table=3, filters={1: referral_link}, data=tokens + 1, func=1)
         await db(table=0, data={1: tg_id}, func=2)
         msg = await update_msg(msg=message_0_0[0], user=message.from_user, new_media=True)
         sent_message = await message.answer_photo(photo=msg['media'], caption=msg['text'], reply_markup=msg['keyboard'])
         # создаём save
         await db(data={1: tg_id, 11: sent_message.message_id}, func=2)
+        # создаём game
+        await db(table=3, data={1: tg_id}, func=2)
         # Удаляем сообщение от пользователя
         await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         # Ждем сутки (в секундах)
         await asyncio.sleep(24 * 60 * 60)
         # Удаляем сообщение
-        await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+        try:
+            await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+        except:
+            if DEBUG:
+                print_exc()
 
 
 @router.message(Command("ads"))
 async def get_ads(message: Message):
     from text.messages.messages_1 import messages_1
     from random import choice
-    from special.decorate_text import exp_bl
 
     Button = InlineKeyboardButton
-    a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='A', callback_data='close_ad')]])
+    a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close_ad')]])
 
     msg = await update_msg(msg=choice(messages_1), user=message.from_user, new_media=True)
     msg_timer, msg_text = msg['timer'], msg['text']
@@ -98,10 +111,42 @@ async def get_ads(message: Message):
                 print_exc()
             return
 
-    msg_text += f'\n\n{exp_bl("A: Закрыть рекламу и получить награду")}'
-
     await sent_message.edit_caption(caption=msg_text, reply_markup=a_keyboard)
 
     await asyncio.sleep(24 * 60 * 60)
 
-    await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+    try:
+        await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+    except:
+        if DEBUG:
+            print_exc()
+
+
+@router.message(Command("balance"))
+async def get_balance(message: Message):
+    pass
+
+
+@router.message(Command("ref"))
+async def get_referral_link(message: Message):
+    from special.decorate_text import link
+
+
+    tg_id = message.from_user.id
+    Button = InlineKeyboardButton
+    a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
+    bot_username = (await bot.get_me()).username
+    ref_link = link(text='ссылка', text_link=f'https://t.me/{bot_username}?start={tg_id}')
+
+    sent_message = await message.answer(
+        text=f"Ваша реферальная {ref_link}.",
+        reply_markup=a_keyboard
+    )
+
+    await asyncio.sleep(24 * 60 * 60)
+
+    try:
+        await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+    except:
+        if DEBUG:
+            print_exc()
