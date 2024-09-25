@@ -4,9 +4,9 @@ from database.db_operation import db
 from text.msg_func import update_msg
 
 
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command, CommandObject
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
 
 from consts import DEBUG
 from traceback import print_exc
@@ -124,7 +124,10 @@ async def get_ads(message: Message):
 
 @router.message(Command("balance"))
 async def get_balance(message: Message):
-    pass
+    tg_id = message.from_user.id
+    tokens = await db(table=3, filters={1: tg_id}, data=8)
+    await send_func(message=message, text=f"Ваше количество токенов: {tokens}.")
+
 
 
 @router.message(Command("ref"))
@@ -133,14 +136,64 @@ async def get_referral_link(message: Message):
 
 
     tg_id = message.from_user.id
-    Button = InlineKeyboardButton
-    a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
     bot_username = (await bot.get_me()).username
     ref_link = link(text='ссылка', text_link=f'https://t.me/{bot_username}?start={tg_id}')
+    await send_func(message=message, text=f"Ваша реферальная {ref_link}.")
 
-    sent_message = await message.answer(
-        text=f"Ваша реферальная {ref_link}.",
+
+@router.message(Command("buy"))
+async def buy(message: Message):
+    tg_id = message.from_user.id
+    user = await db(table=0, filters={1: tg_id}, method=2, data=0)
+    if not user: return
+    Button = InlineKeyboardButton
+    a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text=f"Оплатить 100 ⭐️", pay=True)],
+                                                       [Button(text='❌', callback_data='close')]])
+    sent_message = await message.answer_invoice(
+        title="Отключение рекламы",
+        description="За 100 звёзд Вы можете забыть о рекламе и о токенах, играя в своё удовольствие! P.s. не забудьте ознакомиться с условиями",
+        prices=[LabeledPrice(label="XTR", amount=100)],
+        provider_token="",
+        payload="no_ads",
+        currency="XTR",
         reply_markup=a_keyboard
+    )
+    await asyncio.sleep(24 * 60 * 60)
+    bot.refund_star_payment()
+
+    try:
+        await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
+    except:
+        if DEBUG:
+            print_exc()
+
+
+@router.pre_checkout_query()
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
+    tg_id = pre_checkout_query.from_user.id
+    await db(table=3, filters={1: tg_id}, data={9: 1}, func=1)
+    await pre_checkout_query.answer(ok=True)
+
+
+@router.message(F.successful_payment)
+async def on_successful_payment(message: Message):
+    try:
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    except:
+        if DEBUG:
+            print_exc()
+    text = (f'id покупки: {message.successful_payment.telegram_payment_charge_id}.\n'
+            f'Запомните его. Благодаря нему Вы сможете вернуться потраченные средства.')
+    await send_func(message=message, text=text)
+
+
+async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup = None):
+    if keyboard is None:
+        Button = InlineKeyboardButton
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
+    sent_message = await message.answer(
+        text=text,
+        reply_markup=keyboard
     )
 
     await asyncio.sleep(24 * 60 * 60)

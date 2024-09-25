@@ -20,7 +20,7 @@ COLUMNS = {
     6: 'result_choice',
     7: 'phrase_id',
     8: 'tokens',
-    9: '',
+    9: 'premium',
     10: '',
     11: 'msg_id',
 }
