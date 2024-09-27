@@ -1,3 +1,5 @@
+from aiogram.exceptions import TelegramBadRequest
+
 from database.db_operation import db
 
 
@@ -39,18 +41,10 @@ async def save(message: Message):
         msg = await update_msg(msg=msg, user=message.from_user, new_media=True)
         if media_extension in ['png', 'jpeg', 'jpg']:
             sent_message = await message.answer_photo(photo=msg['media'], caption=msg['text'], reply_markup=msg['keyboard'])
-        # Удаляем сообщение от пользователя
-        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
         # обновляем message_id
         await db(filters={1: tg_id, 2: 0}, data={11: sent_message.message_id}, func=1)
         # Ждем сутки (в секундах)
-        await asyncio.sleep(24 * 60 * 60)
-        # Удаляем сообщение
-        try:
-            await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
-        except:
-            if DEBUG:
-                print_exc()
+        await del_message(sent_message, message)
 
 
 @router.message(Command("start"))
@@ -73,22 +67,19 @@ async def start(message: Message, command: CommandObject):
         # создаём game
         await db(table=3, data={1: tg_id}, func=2)
         # Удаляем сообщение от пользователя
-        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-        # Ждем сутки (в секундах)
-        await asyncio.sleep(24 * 60 * 60)
-        # Удаляем сообщение
-        try:
-            await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
-        except:
-            if DEBUG:
-                print_exc()
+        await del_message(sent_message, message)
 
 
 @router.message(Command("ads"))
 async def get_ads(message: Message):
-    from text.messages.messages_1 import messages_1
     from random import choice
+    from text.messages.messages_1 import messages_1
 
+
+    tg_id = message.from_user.id
+    user_language = await db(table=0, filters={1: tg_id}, data=3)
+    if user_language == 'ru':
+        text = 'секунд осталось'
     Button = InlineKeyboardButton
     a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close_ad')]])
 
@@ -98,13 +89,13 @@ async def get_ads(message: Message):
     # Отправляем начальное сообщение с таймером
     sent_message = await message.answer_photo(
         photo=msg['media'],
-        caption=f"{msg_timer} секунд осталось\n\n{msg_text}"
+        caption=f"{text}: {msg_timer}\n\n{msg_text}"
     )
-
+    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
     # Обновляем сообщение каждую секунду
     for i in range(msg_timer - 1, 0, -1):
         try:
-            await sent_message.edit_caption(caption=f"{i} секунд осталось\n\n{msg_text}")
+            await sent_message.edit_caption(caption=f"{text}: {i}\n\n{msg_text}")
             await asyncio.sleep(1)
         except Exception:
             if DEBUG:
@@ -126,8 +117,10 @@ async def get_ads(message: Message):
 async def get_balance(message: Message):
     tg_id = message.from_user.id
     tokens = await db(table=3, filters={1: tg_id}, data=8)
-    await send_func(message=message, text=f"Ваше количество токенов: {tokens}.")
-
+    user_language = await db(table=0, filters={1: tg_id}, data=3)
+    if user_language == 'ru':
+        text = f"Ваше количество токенов: {tokens}."
+    await send_func(message=message, text=text)
 
 
 @router.message(Command("ref"))
@@ -137,8 +130,12 @@ async def get_referral_link(message: Message):
 
     tg_id = message.from_user.id
     bot_username = (await bot.get_me()).username
-    ref_link = link(text='ссылка', text_link=f'https://t.me/{bot_username}?start={tg_id}')
-    await send_func(message=message, text=f"Ваша реферальная {ref_link}.")
+    user_language = await db(table=0, filters={1: tg_id}, data=3)
+    ref_link = f'https://t.me/{bot_username}?start={tg_id}'
+    if user_language == 'ru':
+        ref_link = link(text='ссылка', text_link=ref_link)
+        text = f"Ваша реферальная {ref_link}."
+    await send_func(message=message, text=text)
 
 
 @router.message(Command("buy"))
@@ -146,26 +143,24 @@ async def buy(message: Message):
     tg_id = message.from_user.id
     user = await db(table=0, filters={1: tg_id}, method=2, data=0)
     if not user: return
+    user_language = await db(table=0, filters={1: tg_id}, data=3)
+    if user_language == 'ru':
+        button_text = f"Оплатить 100 ⭐️"
+        title_text = "Отключение рекламы"
+        description_text = "За 100 звёзд Вы можете забыть о рекламе и о токенах, играя в своё удовольствие! P.s. не забудьте ознакомиться с условиями"
     Button = InlineKeyboardButton
-    a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text=f"Оплатить 100 ⭐️", pay=True)],
+    a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text=button_text, pay=True)],
                                                        [Button(text='❌', callback_data='close')]])
     sent_message = await message.answer_invoice(
-        title="Отключение рекламы",
-        description="За 100 звёзд Вы можете забыть о рекламе и о токенах, играя в своё удовольствие! P.s. не забудьте ознакомиться с условиями",
+        title=title_text,
+        description=description_text,
         prices=[LabeledPrice(label="XTR", amount=100)],
         provider_token="",
         payload="no_ads",
         currency="XTR",
         reply_markup=a_keyboard
     )
-    await asyncio.sleep(24 * 60 * 60)
-    bot.refund_star_payment()
-
-    try:
-        await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
-    except:
-        if DEBUG:
-            print_exc()
+    await del_message(sent_message, message)
 
 
 @router.pre_checkout_query()
@@ -177,14 +172,38 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
 
 @router.message(F.successful_payment)
 async def on_successful_payment(message: Message):
+    tg_id = message.from_user.id
     try:
         await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
     except:
         if DEBUG:
             print_exc()
-    text = (f'id покупки: {message.successful_payment.telegram_payment_charge_id}.\n'
-            f'Запомните его. Благодаря нему Вы сможете вернуться потраченные средства.')
+    user_language = await db(table=0, filters={1: tg_id}, data=3)
+    if user_language == 'ru':
+        text = (f'id покупки: {message.successful_payment.telegram_payment_charge_id}.\n'
+                f'Запомните его. Благодаря нему Вы сможете вернуться потраченные средства.')
     await send_func(message=message, text=text)
+
+
+@router.message(Command("refund"))
+async def refund(message: Message, command: CommandObject):
+    tg_id = message.from_user.id
+    transaction_id = command.args
+    user_language = await db(table=0, filters={1: tg_id}, data=3)
+    if transaction_id is None:
+        if user_language == 'ru':
+            text = 'Отсутствует id покупки.'
+    else:
+        try:
+            await bot.refund_star_payment(user_id=tg_id, transaction_id=transaction_id)
+            if user_language == 'ru':
+                text = 'Средства успешно возвращены.'
+        except TelegramBadRequest as error:
+            if "CHARGE_ALREADY_REFUNDED" in error.message:
+                if user_language == 'ru':
+                    text = 'Средства уже были возвращены.'
+    await send_func(message, text)
+
 
 
 async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup = None):
@@ -195,6 +214,12 @@ async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup 
         text=text,
         reply_markup=keyboard
     )
+
+    await del_message(sent_message, message)
+
+
+async def del_message(sent_message: Message, message: Message):
+    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
 
     await asyncio.sleep(24 * 60 * 60)
 
