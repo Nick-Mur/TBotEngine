@@ -172,36 +172,52 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
 
 @router.message(F.successful_payment)
 async def on_successful_payment(message: Message):
+    from datetime import datetime
+
+
     tg_id = message.from_user.id
     try:
         await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
     except:
         if DEBUG:
             print_exc()
+    await db(table=4, data={1: tg_id, 10: message.successful_payment.telegram_payment_charge_id, 13: datetime.now()}, func=2)
     user_language = await db(table=0, filters={1: tg_id}, data=3)
     if user_language == 'ru':
-        text = (f'id покупки: {message.successful_payment.telegram_payment_charge_id}.\n'
+        text = (f'id транзакции: {message.successful_payment.telegram_payment_charge_id}.\n'
                 f'Запомните его. Благодаря нему Вы сможете вернуться потраченные средства.')
     await send_func(message=message, text=text)
 
 
 @router.message(Command("refund"))
 async def refund(message: Message, command: CommandObject):
+    from datetime import datetime
+
+
     tg_id = message.from_user.id
-    transaction_id = command.args
     user_language = await db(table=0, filters={1: tg_id}, data=3)
+    if user_language == 'ru':
+        from text.phrases.ru_phrases.phrases_2 import phrases
+    transaction_id = command.args
     if transaction_id is None:
-        if user_language == 'ru':
-            text = 'Отсутствует id покупки.'
+        text = phrases[0]
     else:
         try:
-            await bot.refund_star_payment(user_id=tg_id, transaction_id=transaction_id)
-            if user_language == 'ru':
-                text = 'Средства успешно возвращены.'
+            date = await db(table=4, filters={10: transaction_id}, data=13)
+            time_difference = datetime.now() - date
+            if time_difference.total_seconds() > 3600:
+               text = phrases[1]
+            elif await db(table=3, filters={1: tg_id}, data=13):
+                text = phrases[5]
+            else:
+                await db(table=3, filters={1: tg_id}, data={13: 1}, func=1)
+                await bot.refund_star_payment(user_id=tg_id, transaction_id=transaction_id)
+                text = phrases[2]
         except TelegramBadRequest as error:
             if "CHARGE_ALREADY_REFUNDED" in error.message:
-                if user_language == 'ru':
-                    text = 'Средства уже были возвращены.'
+                text = phrases[3]
+            else:
+                text = phrases[4]
     await send_func(message, text)
 
 
