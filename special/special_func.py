@@ -1,12 +1,12 @@
 from settings.config_reader import config
 
-from text.phrases.ru_phrases.phrases_0.phrases import *
+from text.phrases.ru_phrases.phrases_0 import *
 from text.buttons.buttons_0 import *
 from text.media.media_0 import *
 from text.keyboards.keyboards_0 import *
 from text.messages.messages_0 import *
 
-from text.phrases.ru_phrases.phrases_1.phrases import *
+from text.phrases.ru_phrases.phrases_1 import *
 from text.media.media_1 import *
 from text.messages.messages_1 import *
 

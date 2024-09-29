@@ -1,117 +1,135 @@
-from database.data.db_session import *
+from typing import Any, Dict, List, Optional, Tuple, Union
+from sqlalchemy import select, update, delete, asc, desc, func as sql_func
 
-from database.db_consts import *
-
-from sqlalchemy import desc
-from consts import DEBUG, DB_PATH
 from traceback import print_exc
 
+from database.db_consts import *
+from consts import DEBUG
+from database.data.db_session import create_async_session
 
-async def db(table=1, filters=None, method=0, data=None, func=0, offset=0, order_by=None, special_filter=False):
+
+async def db(
+    table: int = 1,
+    filters: Optional[Dict[int, Tuple[str, Any]]] = None,
+    method: Method = Method.FIRST,
+    data: Optional[Union[int, List[int], Dict[int, Any]]] = None,
+    operation: Func = Func.RETURN,
+    offset: int = 0,
+    order_by: Optional[Tuple[int, bool]] = None
+) -> Any:
     """
-    Выполняет запрос к базе данных с динамическими фильтрами, сортировкой и выборкой полей.
+    Асинхронная функция для взаимодействия с базой данных с динамическими фильтрами, сортировкой и выборкой полей.
 
     Параметры:
-    table (int): индекс таблицы для запроса.
-    filters (dict): Словарь фильтров, где ключ - индекс столбца, а значение - строка с условием фильтрации (например, ">1").
-    method (int): Метод запроса ('0' для получения первой записи, или '1' для получения всех записей, или '2' для получения количества записей).
-    data (list): Список имен полей, значения которых нужно вернуть.
-    offset (int, optional): Смещение для запроса (начиная с какой записи возвращать результат).
-    order_by (tuple, optional): Кортеж, где первый элемент - индекс столбца для сортировки, второй - направление (True для возрастания, False для убывания).
-    func (int): индекс операции ('0' - возвращение, '1' - обновление, '2' - добавление, '3' - удаление записи)
+        session (AsyncSession): Асинхронная сессия базы данных.
+        table (int): Индекс таблицы для запроса (см. словарь TABLES).
+        filters (Optional[Dict[int, Tuple[str, Any]]]): Словарь фильтров, где ключ - индекс столбца,
+            а значение - кортеж (оператор, значение). Операторы: '==', '!=', '>', '<', '>=', '<='.
+        method (Method): Метод запроса (FIRST, ALL, COUNT).
+        data (Optional[Union[int, List[int], Dict[int, Any]]]): Данные для выборки или изменения.
+            - Для db_func=RETURN: индекс или список индексов столбцов для возврата.
+            - Для db_func=ADD или func=UPDATE: словарь {индекс_столбца: значение}.
+        db_func (Func): Операция (RETURN, UPDATE, ADD, DELETE).
+        offset (int): Смещение для запроса (начиная с какой записи возвращать результаты).
+        order_by (Optional[Tuple[int, bool]]): Кортеж, где первый элемент - индекс столбца для сортировки,
+            второй - направление (True для возрастания, False для убывания).
 
     Возвращает:
-    list: Список значений указанных полей для найденных записей.
-    False: В случае возникновения ошибки при выполнении запроса.
+        Any: Результат операции (данные, количество записей или статус выполнения).
     """
     try:
-        global_init(DB_PATH)
-        session = create_session()
         table_class = TABLES.get(table)
-        query = session.query(table_class)
+        if not table_class:
+            raise ValueError(f"Неверный индекс таблицы: {table}")
 
-        if not filters:
-            filters = dict()
-        elif not special_filter:
-            for key, value in filters.items():
-                value = f"=={value}" if isinstance(value, int) else f'=="{value}"'
-                filters[key] = value
-        for index_column, filter_value in filters.items():
-            column = COLUMNS[index_column]
-            query = query.filter(eval(f'{table_class.__name__}.{column}{filter_value}'))
+        # Начальное построение запроса
+        query = select(table_class)
 
-        if func == 2:
-            # Добавление данных
-            if not data: data = dict()
-            new_entity = table_class(**{COLUMNS[index_column]: value for index_column, value in data.items()})
-            session.add(new_entity)
-            session.commit()
+        # Обработка фильтров
+        if filters:
+            for index_column, (operator_str, value) in filters.items():
+                column_name = COLUMNS.get(index_column)
+                if not column_name:
+                    raise ValueError(f"Неверный индекс столбца: {index_column}")
+                column_attr = getattr(table_class, column_name)
+                op_func = operators.get(operator_str)
+                if not op_func:
+                    raise ValueError(f"Неподдерживаемый оператор: {operator_str}")
+                query = query.where(op_func(column_attr, value))
 
-            return True
-
+        # Обработка сортировки
         if order_by:
-            index_column, direction = order_by
-            column = COLUMNS[index_column]
-            if direction:
-                query = query.order_by(eval(f'{table_class.__name__}.{column}'))
-            else:
-                query = query.order_by(desc(eval(f'{table_class.__name__}.{column}')))
+            index_column, ascending = order_by
+            column_name = COLUMNS.get(index_column)
+            if not column_name:
+                raise ValueError(f"Неверный индекс столбца для сортировки: {index_column}")
+            column_attr = getattr(table_class, column_name)
+            query = query.order_by(asc(column_attr) if ascending else desc(column_attr))
 
+        # Обработка смещения
         if offset:
             query = query.offset(offset)
+        async with create_async_session() as session:
+            # Выполнение операций
+            if operation == Func.ADD:
+                if not isinstance(data, dict):
+                    raise ValueError("Данные должны быть словарем для операции ADD")
+                new_entity = table_class(**{COLUMNS[k]: v for k, v in data.items()})
+                session.add(new_entity)
+                await session.commit()
+                return True
 
-        if method == 0:
-            entity = query.first()
-            if entity is None: return None
-            entities = [entity]
-        elif method == 1:
-            entities = query.all()
-        elif method == 2:
-            return query.count()
+            elif operation == Func.RETURN:
+                if method == Method.FIRST:
+                    result = await session.execute(query)
+                    entity = result.scalars().first()
+                    if not entity:
+                        return None
+                    if data is None:
+                        return entity
+                    elif isinstance(data, int):
+                        column_name = COLUMNS.get(data)
+                        return getattr(entity, column_name)
+                    else:
+                        return [getattr(entity, COLUMNS[idx]) for idx in data]
 
-        if func == 0:
-            # Возвращение данных
-            if data is None: data = list()
-            if not isinstance(data, list): data = [data]
-            result = list()
-            for entity in entities:
-                entity_result = list()
-                for index_setting_name in data:
-                    setting_name = COLUMNS[index_setting_name]
-                    if hasattr(entity, setting_name):
-                        entity_result.append(getattr(entity, setting_name))
-                result.append(entity_result)
-            if len(result) == 1:
-                result = result[0]
-                if len(result) == 1 and result:
-                    result = result[0]
-                elif len(result) == 0:
-                    result = False
-            return result
+                elif method == Method.ALL:
+                    result = await session.execute(query)
+                    entities = result.scalars().all()
+                    if data is None:
+                        return entities
+                    else:
+                        return [
+                            [getattr(entity, COLUMNS[idx]) for idx in data]
+                            for entity in entities
+                        ]
 
-        elif func == 1:
-            # Обновление данных
-            if not data: data = dict()
-            for entity in entities:
-                for index_column, value in data.items():
-                    column = COLUMNS[index_column]
-                    if hasattr(entity, column):
-                        setattr(entity, column, value)
-            session.commit()
-            return True
+                elif method == Method.COUNT:
+                    count_query = select(sql_func.count()).select_from(table_class)
+                    result = await session.execute(count_query)
+                    count = result.scalar_one()
+                    return count
 
-        elif func == 3:
-            # Удаление данных
-            for entity in entities:
-                session.delete(entity)
-            session.commit()
-            return True
+            elif operation == Func.UPDATE:
+                if not isinstance(data, dict):
+                    raise ValueError("Данные должны быть словарем для операции UPDATE")
+                update_data = {COLUMNS[k]: v for k, v in data.items()}
+                update_query = (
+                    update(table_class)
+                    .where(*query._where_criteria)
+                    .values(**update_data)
+                )
+                await session.execute(update_query)
+                await session.commit()
+                return True
 
-    except Exception:
+            elif operation == Func.DELETE:
+                delete_query = delete(table_class).where(*query._where_criteria)
+                await session.execute(delete_query)
+                await session.commit()
+                return True
+
+    except Exception as e:
         if DEBUG:
             print_exc()
-        session.rollback()
         return False
-
-    finally:
-        session.close()

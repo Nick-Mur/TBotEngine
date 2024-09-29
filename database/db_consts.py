@@ -4,6 +4,33 @@ from database.data.choices import Choices
 from database.data.game import Game
 from database.data.transactions import Transactions
 
+from enum import Enum
+from operator import eq, ne, gt, lt, ge, le
+
+
+# Перечисления для методов и функций
+class Method(Enum):
+    FIRST = 0
+    ALL = 1
+    COUNT = 2
+
+class Func(Enum):
+    RETURN = 0
+    UPDATE = 1
+    ADD = 2
+    DELETE = 3
+
+# Словарь операторов для фильтрации
+operators = {
+    '==': eq,
+    '!=': ne,
+    '>': gt,
+    '<': lt,
+    '>=': ge,
+    '<=': le,
+}
+
+
 TABLES = {
     0: User,
     1: Save,
