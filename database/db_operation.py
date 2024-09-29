@@ -9,7 +9,7 @@ from database.data.db_session import create_async_session
 
 
 async def db(
-    table: int = 1,
+    table: int = 3,
     filters: Optional[Dict[int, Tuple[str, Any]]] = None,
     method: Method = Method.FIRST,
     data: Optional[Union[int, List[int], Dict[int, Any]]] = None,

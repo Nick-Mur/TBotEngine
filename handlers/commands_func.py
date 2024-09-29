@@ -86,16 +86,12 @@ async def start(message: Message, command: CommandObject):
 
         # Создаем новую запись пользователя
         await db(table=0, data={1: tg_id}, operation=Func.ADD)
+        # Создаем новую запись в таблице Game
+        await db(table=3, data={1: tg_id}, operation=Func.ADD)
 
         # Отправляем сообщение пользователю
         msg = await update_msg(msg=message_0_0[0], user=message.from_user, new_media=True)
         sent_message = await message.answer_photo(photo=msg['media'], caption=msg['text'], reply_markup=msg['keyboard'])
-
-        # Создаем новую запись в таблице Save
-        await db(table=1, data={1: tg_id, 11: sent_message.message_id}, operation=Func.ADD)
-
-        # Создаем новую запись в таблице Game
-        await db(table=3, data={1: tg_id}, operation=Func.ADD)
 
         # Удаляем сообщение пользователя
         await del_message(sent_message, message)

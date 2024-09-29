@@ -7,12 +7,11 @@ message_0_0 = [
     {text: 'phrase_0_0_2', media: 'media_0_0_1', keyboard: 'ab_0'}
 ]
 
-
 message_0_1 = [
     {text: 'phrase_0_1_0', media: 'media_0_1_0', keyboard: 'basic_0'},
     {text: 'phrase_0_1_1', media: 'media_0_1_0', keyboard: 'basic_0'},
-    {text: 'phrase_0_1_2', media: 'media_0_1_0', keyboard: 'basic_0'}
-]
+    {text: 'phrase_0_1_2', media: 'media_0_1_0', keyboard: 'basic_0'}]
+
 message_0_2 = [
     {text: 'phrase_0_2_0', media: 'media_0_2_0', keyboard: 'basic_0'},
     {text: 'phrase_0_2_0', media: 'media_0_2_1', keyboard: 'basic_0'},

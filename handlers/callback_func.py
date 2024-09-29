@@ -30,69 +30,57 @@ async def next_0_msg(call: CallbackQuery):
     tg_id = call.from_user.id
     data = call.data.split('_')[1:]
 
-    # Получаем stage_id и phrase_id из базы данных для пользователя
-    stage_id, phrase_id = await db(table=0, filters={1: ('==', tg_id)}, data=[4, 7], method=Method.FIRST)
+    db_data = dict()
 
-    if len(data) == 2:
-        choice = data[1]
-        choice_id = f'0_{stage_id}'
-        # Добавляем новую запись в таблицу выбора
-        await db(table=2, data={1: tg_id, 5: choice_id, 6: choice}, operation=Func.ADD)
+    message_id, msg_id = await db(filters={1: ('==', tg_id)}, data=[2, 11], method=Method.FIRST)
+
+    message = await return_variable(f'message_0_{message_id}')
+    if len(message) > msg_id + 1:
+        msg_id += 1
     else:
-        choice = None
+        if len(data) == 1:
+            choice = None
+        else:
+            choice = data[1]
+            await db(table=2, data={1: tg_id, 5: message_id, 6: choice}, operation=Func.ADD)
+        message_id = await find_next_message_0(message_id, choice=choice)
+        msg_id = 0
+        db_data.update({2: message_id})
+        message = await return_variable(f'message_0_{message_id}')
 
-    # Получаем сообщение для текущего этапа
-    message = await return_variable(f'message_0_{stage_id}')
-
-    # Проверяем, нужно ли перейти к следующей фразе или этапу
-    if phrase_id + 1 < len(message):
-        phrase_id += 1
-        msg = message[phrase_id]
-    else:
-        phrase_id = 0
-        stage_id = await find_next_message_0(stage_id=stage_id, choice=choice)
-        message = await return_variable(f'message_0_{stage_id}')
-        msg = message[0]
-
-    # Обновляем сообщение для пользователя
-    msg = await update_msg(msg=msg, user=call.from_user)
-
-    # Обновляем stage_id и phrase_id для пользователя
-    await db(table=0, filters={1: ('==', tg_id), 2: ('==', 0)}, data={4: stage_id, 7: phrase_id}, operation=Func.UPDATE)
-
-    # Редактируем сообщение в чате
-    await edit(msg=msg, message=call.message)
+    await next_and_back(msg_id, call, message, tg_id, db_data)
 
 
 @router.callback_query(lambda call: 'back_0' in call.data)
 async def back_0_msg(call: CallbackQuery):
     tg_id = call.from_user.id
 
-    # Получаем текущие stage_id и phrase_id из базы данных для пользователя
-    stage_id, phrase_id = await db(table=0, filters={1: ('==', tg_id)}, data=[4, 7], method=Method.FIRST)
+    db_data = dict()
 
-    # Переходим на предыдущую фразу
-    phrase_id -= 1
-    if phrase_id < 0:
-        # Если фраза закончилась, находим предыдущий этап
-        stage_id = await find_previous_message_0(stage_id=stage_id, tg_id=tg_id)
+    message_id, msg_id = await db(filters={1: ('==', tg_id)}, data=[2, 11], method=Method.FIRST)
 
-    # Получаем сообщение для текущего stage_id
-    message = await return_variable(f'message_0_{stage_id}')
-    msg = message[phrase_id]
+    if msg_id > 0:
+        message = await return_variable(f'message_0_{message_id}')
+        msg_id -= 1
+    else:
+        message_id = await find_previous_message_0(message_id=message_id, tg_id=tg_id)
+        message = await return_variable(f'message_0_{message_id}')
+        msg_id = len(message) - 1
+        db_data.update({2: message_id})
 
-    # Если вышли за пределы, то переходим к последней фразе
-    if phrase_id < 0:
-        phrase_id = len(msg) - 1
+    await next_and_back(msg_id, call, message, tg_id, db_data)
 
+
+async def next_and_back(msg_id, call, message, tg_id, db_data):
+    db_data.update({11: msg_id})
+
+    msg = message[msg_id]
     # Обновляем сообщение для пользователя
     msg = await update_msg(msg=msg, user=call.from_user)
-
-    # Обновляем stage_id и phrase_id для пользователя в базе данных
-    await db(table=0, filters={1: ('==', tg_id), 2: ('==', 0)}, data={4: stage_id, 7: phrase_id}, operation=Func.UPDATE)
-
     # Редактируем сообщение в чате
     await edit(msg=msg, message=call.message)
+
+    await db(filters={1: ('==', tg_id)}, data=db_data, operation=Func.UPDATE)
 
 
 @router.callback_query(lambda call: 'close' in call.data)

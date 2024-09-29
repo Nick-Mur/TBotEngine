@@ -6,3 +6,5 @@ class Game(SqlAlchemyBase):
     tg_id = Column(Integer, primary_key=True)
     tokens = Column(Integer, default=5)
     premium = Column(Integer, default=0)
+    message_id = Column(Integer, default=0)
+    msg_id = Column(Integer, default=0)
