@@ -11,17 +11,12 @@ from text.media.media_1 import *
 from text.messages.messages_1 import *
 
 
-
-async def get_payment_token():
-    return config.payment_token.get_secret_value()
-
-
 def get_bot_token():
     return config.bot_token.get_secret_value()
 
 
-async def like(value):
-    return f'%{value}%'
+def get_webhook_host():
+    return config.webhook_host.get_secret_value()
 
 
 async def return_variable(value):
