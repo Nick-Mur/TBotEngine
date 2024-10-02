@@ -8,3 +8,4 @@ class Game(SqlAlchemyBase):
     premium = Column(Integer, default=0)
     message_id = Column(Integer, default=0)
     msg_id = Column(Integer, default=0)
+    sent_message_id = Column(Integer)

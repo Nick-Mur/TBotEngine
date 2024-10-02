@@ -43,7 +43,7 @@ COLUMNS = {
     1: 'tg_id',
     2: 'message_id',
     3: 'language',
-    4: '',
+    4: 'sent_message_id',
     5: 'choice_id',
     6: 'result_choice',
     7: '',
