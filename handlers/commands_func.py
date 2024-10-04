@@ -15,7 +15,7 @@ from traceback import print_exc
 
 from bot import bot
 
-from special.special_func import return_variable
+from special.special_func import return_variable, get_user_language_phrases
 
 import asyncio
 
@@ -319,55 +319,30 @@ async def refund(message: Message, command: CommandObject):
     await send_func(message, text)
 
 
-async def check_subscription(user_id: int, channel_ids: list) -> dict:
-    from bot import bot
-    """
-    Проверяет подписку пользователя на несколько каналов.
-
-    Параметры:
-        bot (Bot): Экземпляр бота для выполнения запроса.
-        user_id (int): ID пользователя, которого нужно проверить.
-        channel_ids (list): Список ID или username каналов, например "@channelname".
-
-    Возвращает:
-        dict: Словарь с результатами проверки подписки для каждого канала.
-              Формат: {channel_id: True/False}
-    """
-    results = {}
-    for channel_id in channel_ids:
-        try:
-            member = await bot.get_chat_member(chat_id=channel_id, user_id=user_id)
-            # Проверяем статус пользователя: он должен быть подписан (member, administrator, owner)
-            if member.status in ['member', 'administrator', 'creator']:
-                results[channel_id] = True
-            else:
-                results[channel_id] = False
-        except Exception as e:
-            # Если произошла ошибка, например пользователь не найден или бот не имеет доступа к каналу
-            print(f"Ошибка при проверке подписки на канал {channel_id}: {e}")
-            results[channel_id] = False
-    return results
-
-
 @router.message(Command("member"))
 async def member_command_handler(message: Message):
-    from consts import C
+    from special.special_func import check_subscription
+    from special.decorate_text import exp_bl
+
+
     """
     Обработчик команды /member.
     Проверяет подписку пользователя на несколько каналов и отправляет ответ.
     """
-    user_id = message.from_user.id  # ID пользователя, отправившего команду
-    subscription_results = await check_subscription(bot, user_id, CHANNEL_IDS)
+    tg_id = message.from_user.id  # ID пользователя, отправившего команду
+    subscription_results = await check_subscription(tg_id)
+
+    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_member')
 
     # Проверка подписки на все каналы
     if all(subscription_results.values()):
-        await message.answer("Вы подписаны на все каналы!")
+        await send_func(message=message, text=phrases[0])
     else:
         # Сообщаем пользователю, на какие каналы он не подписан
         not_subscribed_channels = [channel for channel, subscribed in subscription_results.items() if not subscribed]
         not_subscribed_list = "\n".join(not_subscribed_channels)
-        await message.answer(
-            f"Вы не подписаны на следующие каналы:\n{not_subscribed_list}\nПожалуйста, подпишитесь для продолжения.")
+        not_subscribed_list = await exp_bl(not_subscribed_list)
+        await send_func(message=message, text=f'{phrases[0]}\n{not_subscribed_list}\n')
 
 
 async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup = None):
@@ -392,23 +367,3 @@ async def del_message(sent_message: Message, message: Message):
     except:
         if DEBUG:
             print_exc()
-
-
-async def get_user_language_phrases(tg_id: int, module: str):
-    from importlib import import_module
-
-
-    """
-    Получает язык пользователя из базы данных и возвращает соответствующие фразы.
-    """
-    user_language = await db(
-        table=0,  # Таблица User
-        filters={1: ('==', tg_id)},  # 1 соответствует 'tg_id' в COLUMNS
-        data=3,  # 3 соответствует 'language' в COLUMNS
-        method=Method.FIRST,
-        operation=Func.RETURN
-    )
-
-    module = import_module(f'text.phrases.{user_language}_phrases.{module}')
-    return module.phrases
-

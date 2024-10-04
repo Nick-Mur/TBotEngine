@@ -98,6 +98,9 @@ async def db(
                     entities = result.scalars().all()
                     if data is None:
                         return entities
+                    elif not isinstance(data, list):
+                        # Если data — это один индекс, возвращаем один столбец для каждого entity
+                        return [getattr(entity, COLUMNS[data]) for entity in entities]
                     else:
                         return [
                             [getattr(entity, COLUMNS[idx]) for idx in data]

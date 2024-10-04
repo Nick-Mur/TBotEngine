@@ -23,6 +23,9 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def on_startup(app=None):
+    from special.special_func import monitor_unsubscribes
+
+
     """
     Устанавливаем вебхук при старте приложения, если вебхук включён.
     Если вебхук не используется, удаляем активный вебхук.
@@ -40,7 +43,11 @@ async def on_startup(app=None):
     else:
         # Удаляем активный вебхук, если используется polling
         await bot.delete_webhook()
+        await dp.start_polling(bot)
         logging.info("Вебхук удалён, запущен polling...")
+
+    # Запуск фоновой задачи для мониторинга подписок
+    await asyncio.create_task(monitor_unsubscribes())
 
 
 async def on_shutdown(app=None):
