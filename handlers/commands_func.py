@@ -10,7 +10,7 @@ from aiogram import Router, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
 
-from consts import DEBUG
+from consts import DEBUG, ADMINS
 from traceback import print_exc
 
 from bot import bot
@@ -224,7 +224,6 @@ async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
     await pre_checkout_query.answer(ok=True)
 
 
-
 @router.message(F.successful_payment)
 async def on_successful_payment(message: Message):
     from datetime import datetime
@@ -251,7 +250,6 @@ async def on_successful_payment(message: Message):
 
     # Отправляем сообщение с информацией о транзакции
     await send_func(message=message, text=text)
-
 
 
 @router.message(Command("refund"))
@@ -343,6 +341,113 @@ async def member_command_handler(message: Message):
         not_subscribed_list = "\n".join(not_subscribed_channels)
         not_subscribed_list = await exp_bl(not_subscribed_list)
         await send_func(message=message, text=f'{phrases[0]}\n{not_subscribed_list}\n')
+
+
+@router.message(Command("info"))
+async def info(message: Message):
+    from special.special_func import check_subscription
+    from special.decorate_text import exp_bl
+
+
+    """
+    Обработчик команды /member.
+    Проверяет подписку пользователя на несколько каналов и отправляет ответ.
+    """
+    tg_id = message.from_user.id  # ID пользователя, отправившего команду
+    subscription_results = await check_subscription(tg_id)
+
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_member')
+
+    # Проверка подписки на все каналы
+    if all(subscription_results.values()):
+        await send_func(message=message, text=phrases[0])
+    else:
+        # Сообщаем пользователю, на какие каналы он не подписан
+        not_subscribed_channels = [channel for channel, subscribed in subscription_results.items() if not subscribed]
+        not_subscribed_list = "\n".join(not_subscribed_channels)
+        not_subscribed_list = await exp_bl(not_subscribed_list)
+        await send_func(message=message, text=f'{phrases[0]}\n{not_subscribed_list}\n')
+
+
+@router.message(Command("code"))
+async def code(message: Message, command: CommandObject):
+    """
+    Обработчик команды /code для работы с промокодами.
+
+    Поддерживаемые команды:
+    - /code create <код> <токены> <количество>: Создает заданное количество промокодов с указанным количеством токенов (доступно только для администратора).
+    - /code delete <код>: Удаляет все промокоды с указанным кодом (доступно только для администратора).
+    - /code <код>: Активирует промокод для пользователя, если он еще не был использован.
+
+    Параметры:
+    - message: Объект сообщения Telegram.
+    - command: Объект команды, содержащий аргументы.
+    """
+    if command.args:
+        args = command.args.split()
+    else:
+        args = list()
+    tg_id = message.from_user.id
+
+    # Получение фраз на основе языка пользователя
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_code')
+
+    if len(args) >= 1:
+        action = args[0]
+
+        # Команда для создания промокодов
+        if action == "create" and len(args) == 4 and tg_id in ADMINS:
+            promo_code = args[1]
+            value = int(args[2])
+            count = int(args[3])
+
+            # Создание указанного количества промокодов
+            for _ in range(count):
+                await db(table=1, data={1: '', 7: promo_code, 14: value}, operation=Func.ADD)
+            await send_func(message=message, text=f"{phrases[0]} {count} {phrases[1]} {promo_code}, {phrases[2]} {value} {phrases[3]}.")
+
+        # Команда для удаления промокодов
+        elif action == "delete" and len(args) == 2 and tg_id in ADMINS:
+            promo_code = args[1]
+
+            # Удаление всех промокодов с указанным кодом
+            await db(table=1, filters={7: ('==', promo_code)}, operation=Func.DELETE)
+            await send_func(message=message, text=f"{phrases[4]} {promo_code} {phrases[5]}.")
+
+        # Команда для активации промокода
+        elif len(args) == 1:
+            promo_code = args[0]
+
+            # Проверка, использовал ли пользователь данный промокод
+            user_code_exists = await db(table=1, filters={1: ('==', tg_id), 7: ('==', promo_code)}, method=Method.COUNT, data=0)
+            if user_code_exists:
+                await send_func(message=message, text=phrases[6])
+                return
+
+            # Поиск промокода в базе данных
+            promo_code_entry = await db(table=1, filters={7: ('==', promo_code), 1: ('==', '')}, method=Method.FIRST, data=[0, 14])
+            if promo_code_entry:
+                promo_code_id, value = promo_code_entry
+
+                # Проверка, если все одинаковые коды уже использованы
+                all_codes_used = await db(table=1, filters={7: ('==', promo_code), 1: ('==', '')}, method=Method.COUNT, data=0) - 1
+                print(all_codes_used)
+                if not all_codes_used:
+                    # Удаление всех одинаковых промокодов, если они уже были использованы всеми
+                    await db(table=1, filters={7: ('==', promo_code)}, operation=Func.DELETE)
+
+                # Добавление токенов пользователю и пометка промокода
+                await db(table=1, filters={0: ('==', promo_code_id)}, data={1: tg_id}, operation=Func.UPDATE)
+                await send_func(message=message, text=f"{phrases[7]} {promo_code} {phrases[8]} {value} {phrases[3]}.")
+            else:
+                # Сообщение, если промокод не найден или уже использован
+                await send_func(message=message, text=phrases[9])
+        else:
+            # Сообщение об ошибке в команде
+            await send_func(message=message, text=phrases[10])
+    else:
+        # Сообщение об отсутствии аргументов
+        await send_func(message=message, text=phrases[10])
 
 
 async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup = None):

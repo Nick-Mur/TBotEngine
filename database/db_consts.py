@@ -2,6 +2,7 @@ from database.data.user import User
 from database.data.choices import Choices
 from database.data.game import Game
 from database.data.transactions import Transactions
+from database.data.promo import Promo
 
 from enum import Enum
 from operator import eq, ne, gt, lt, ge, le
@@ -32,7 +33,7 @@ operators = {
 
 TABLES = {
     0: User,
-    1: '',
+    1: Promo,
     2: Choices,
     3: Game,
     4: Transactions
@@ -46,11 +47,12 @@ COLUMNS = {
     4: 'sent_message_id',
     5: 'choice_id',
     6: 'result_choice',
-    7: '',
+    7: 'code',
     8: 'tokens',
     9: 'premium',
     10: 'transaction_id',
     11: 'msg_id',
     12: 'date',
-    13: 'refund'
+    13: 'refund',
+    14: 'value'
 }

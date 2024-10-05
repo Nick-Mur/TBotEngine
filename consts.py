@@ -5,3 +5,4 @@ MEDIA_PHOTO = 'media/photo/'
 CHANNEL_IDS = [
     '@pantheon_developers'
 ]
+ADMINS = [1977904801]

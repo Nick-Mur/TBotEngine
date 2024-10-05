@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
-from sqlalchemy import select, update, delete, asc, desc, func as sql_func
+from sqlalchemy import select, update, delete, asc, desc, func as sql_func, and_
 
 from traceback import print_exc
 
@@ -47,6 +47,7 @@ async def db(
 
         # Обработка фильтров
         if filters:
+            filter_conditions = []
             for index_column, (operator_str, value) in filters.items():
                 column_name = COLUMNS.get(index_column)
                 if not column_name:
@@ -55,7 +56,10 @@ async def db(
                 op_func = operators.get(operator_str)
                 if not op_func:
                     raise ValueError(f"Неподдерживаемый оператор: {operator_str}")
-                query = query.where(op_func(column_attr, value))
+                filter_conditions.append(op_func(column_attr, value))
+
+            if filter_conditions:
+                query = query.where(and_(*filter_conditions))
 
         # Обработка сортировки
         if order_by:
@@ -108,7 +112,7 @@ async def db(
                         ]
 
                 elif method == Method.COUNT:
-                    count_query = select(sql_func.count()).select_from(table_class)
+                    count_query = select(sql_func.count()).select_from(table_class).where(and_(*filter_conditions))
                     result = await session.execute(count_query)
                     count = result.scalar_one()
                     return count
@@ -119,7 +123,7 @@ async def db(
                 update_data = {COLUMNS[k]: v for k, v in data.items()}
                 update_query = (
                     update(table_class)
-                    .where(*query._where_criteria)
+                    .where(and_(*query._where_criteria))
                     .values(**update_data)
                 )
                 await session.execute(update_query)
@@ -127,7 +131,7 @@ async def db(
                 return True
 
             elif operation == Func.DELETE:
-                delete_query = delete(table_class).where(*query._where_criteria)
+                delete_query = delete(table_class).where(and_(*query._where_criteria))
                 await session.execute(delete_query)
                 await session.commit()
                 return True
