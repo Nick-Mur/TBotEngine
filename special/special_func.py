@@ -31,22 +31,46 @@ async def monitor_unsubscribes():
     from database.db_consts import Method, Func
     from asyncio import sleep
 
-
     """
     Фоновая задача для проверки подписок пользователей.
     """
     while True:
+        # Получаем список всех пользователей
         tg_ids = await db(table=0, data=1, method=Method.ALL)
-        for tg_id in tg_ids:
-            subscription_results = await check_subscription(tg_id)
-            # Получаем текущее количество токенов
-            tokens = await db(table=3, filters={1: ('==', tg_id)}, data=8, method=Method.FIRST)
-            # Проверка подписки на все каналы
-            subscribed_count = sum(subscription_results.values())
-            # Обновляем количество токенов
-            await db(table=3, filters={1: ('==', tg_id)}, data={8: tokens + subscribed_count}, operation=Func.UPDATE)
-        # Ждем 24 часа перед следующей проверкой
-        await sleep(60 * 60 * 24)
+        total_users = len(tg_ids)
+
+        if total_users > 1440:
+            interval = 10 * 60  # Проверяем каждые 10 минуту
+            batches = 144
+        elif total_users > 100:
+            interval = 60 * 60  # Проверяем каждый час
+            batches = 24
+        else:
+            interval = 60 * 60 * 24  # Проверяем раз в сутки
+            batches = 1
+
+        batch_size = (total_users + batches - 1) // batches  # Округляем вверх
+
+        for i in range(0, total_users, batch_size):
+            batch = tg_ids[i:i + batch_size]
+            for tg_id in batch:
+                # Обрабатываем каждого пользователя
+                subscription_results = await check_subscription(tg_id)
+                # Получаем текущее количество токенов
+                tokens = await db(table=3, filters={1: ('==', tg_id)}, data=8, method=Method.FIRST)
+                # Проверка подписки на все каналы
+                subscribed_count = sum(subscription_results.values())
+                # Обновляем количество токенов
+                await db(
+                    table=3,
+                    filters={1: ('==', tg_id)},
+                    data={8: tokens + subscribed_count},
+                    operation=Func.UPDATE
+                )
+            # Ждем перед обработкой следующего батча
+            await sleep(interval)
+        # После обработки всех батчей, цикл начнется заново
+
 
 
 async def check_subscription(user_id: int) -> dict:
