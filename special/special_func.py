@@ -106,16 +106,13 @@ async def check_subscription(user_id: int) -> dict:
     return results
 
 
-async def get_user_language_phrases(tg_id: int, module: str):
-    from importlib import import_module
-
+async def get_user_language_phrases(tg_id: int, data: str):
     from database.db_operation import db
     from database.db_consts import Method, Func
+    from importlib import import_module
 
-
-    """
-    Получает язык пользователя из базы данных и возвращает соответствующие фразы.
-    """
+    # Создаем сессию для взаимодействия с базой данных
+    # Получаем язык пользователя из базы данных
     user_language = await db(
         table=0,  # Таблица User
         filters={1: ('==', tg_id)},  # 1 соответствует 'tg_id' в COLUMNS
@@ -124,6 +121,15 @@ async def get_user_language_phrases(tg_id: int, module: str):
         operation=Func.RETURN
     )
 
-    module = import_module(f'text.phrases.{user_language}_phrases.{module}')
-    return module.phrases
+    # Импортируем модуль с фразами для нужного языка
+    module = import_module(f'text.phrases.{user_language}_phrases.special_phrases')
+
+    # Возвращаем объект (например, массив), который соответствует строке `data`
+    phrases = getattr(module, data, None)
+
+    # Если объект не найден, можно вернуть значение по умолчанию или вызвать исключение
+    if phrases is None:
+        raise ValueError(f"Не удалось найти объект '{data}' в модуле '{module.__name__}'")
+
+    return phrases
 

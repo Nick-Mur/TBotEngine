@@ -104,7 +104,7 @@ async def get_ads(message: Message):
 
     tg_id = message.from_user.id
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_balance')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_balance')
 
     # Клавиатура с кнопкой закрытия
     Button = InlineKeyboardButton
@@ -154,7 +154,7 @@ async def get_balance(message: Message):
     # Получаем количество токенов из таблицы Game (индекс 8 для tokens)
     tokens = await db(table=3, filters={1: ('==', tg_id)}, data=8, method=Method.FIRST)
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_balance')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_balance')
 
     text = f'{phrases[0]}: {tokens}'
     # Отправляем сообщение пользователю
@@ -169,7 +169,7 @@ async def get_referral_link(message: Message):
     tg_id = message.from_user.id
     bot_username = (await bot.get_me()).username
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_referral')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_referral')
 
     # Генерируем реферальную ссылку
     ref_link = f'https://t.me/{bot_username}?start={tg_id}'
@@ -190,7 +190,7 @@ async def buy(message: Message):
         return
 
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_buy')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_buy')
 
     Button = InlineKeyboardButton
     a_keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text=phrases[0], pay=True)],
@@ -245,7 +245,7 @@ async def on_successful_payment(message: Message):
         operation=Func.ADD
     )
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_successful_payment')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_successful_payment')
 
     text = f'{phrases[0]}: {message.successful_payment.telegram_payment_charge_id}.\n{phrases[1]}'
 
@@ -262,7 +262,7 @@ async def refund(message: Message, command: CommandObject):
     tg_id = message.from_user.id
     transaction_id = command.args
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_refund')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_refund')
 
 
     if not transaction_id:
@@ -332,7 +332,7 @@ async def member_command_handler(message: Message):
     tg_id = message.from_user.id  # ID пользователя, отправившего команду
     subscription_results = await check_subscription(tg_id)
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, module='phrases_member')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_member')
 
     # Проверка подписки на все каналы
     if all(subscription_results.values()):

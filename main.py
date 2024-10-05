@@ -20,6 +20,7 @@ WEBAPP_PORT = 443  # HTTPS-сервер обычно работает на по�
 
 # Настраиваем логирование
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("aiogram.event").setLevel(logging.WARNING)  # Убираем подробные логи о каждом обновлении
 
 
 async def on_startup(app=None):
