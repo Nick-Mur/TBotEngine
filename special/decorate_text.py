@@ -6,7 +6,7 @@ async def blockquote(text):
     return html.blockquote(quote_text)
 
 
-async def exp_bl(text):
+def exp_bl(text):
     quote_text = html.quote(text)
     return html.expandable_blockquote(quote_text)
 

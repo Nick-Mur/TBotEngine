@@ -161,7 +161,6 @@ async def get_balance(message: Message):
     await send_func(message=message, text=text)
 
 
-
 @router.message(Command("ref"))
 async def get_referral_link(message: Message):
     from special.decorate_text import link
@@ -318,7 +317,7 @@ async def refund(message: Message, command: CommandObject):
 
 
 @router.message(Command("member"))
-async def member_command_handler(message: Message):
+async def member(message: Message):
     from special.special_func import check_subscription
     from special.decorate_text import exp_bl
 
@@ -339,34 +338,18 @@ async def member_command_handler(message: Message):
         # Сообщаем пользователю, на какие каналы он не подписан
         not_subscribed_channels = [channel for channel, subscribed in subscription_results.items() if not subscribed]
         not_subscribed_list = "\n".join(not_subscribed_channels)
-        not_subscribed_list = await exp_bl(not_subscribed_list)
+        not_subscribed_list = exp_bl(not_subscribed_list)
         await send_func(message=message, text=f'{phrases[0]}\n{not_subscribed_list}\n')
 
 
 @router.message(Command("info"))
 async def info(message: Message):
-    from special.special_func import check_subscription
-    from special.decorate_text import exp_bl
+    tg_id = message.from_user.id
 
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_info')
 
-    """
-    Обработчик команды /member.
-    Проверяет подписку пользователя на несколько каналов и отправляет ответ.
-    """
-    tg_id = message.from_user.id  # ID пользователя, отправившего команду
-    subscription_results = await check_subscription(tg_id)
-
-    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_member')
-
-    # Проверка подписки на все каналы
-    if all(subscription_results.values()):
-        await send_func(message=message, text=phrases[0])
-    else:
-        # Сообщаем пользователю, на какие каналы он не подписан
-        not_subscribed_channels = [channel for channel, subscribed in subscription_results.items() if not subscribed]
-        not_subscribed_list = "\n".join(not_subscribed_channels)
-        not_subscribed_list = await exp_bl(not_subscribed_list)
-        await send_func(message=message, text=f'{phrases[0]}\n{not_subscribed_list}\n')
+    # Отправляем сообщение с реферальной ссылкой
+    await send_func(message=message, text=phrases)
 
 
 @router.message(Command("code"))
@@ -431,7 +414,6 @@ async def code(message: Message, command: CommandObject):
 
                 # Проверка, если все одинаковые коды уже использованы
                 all_codes_used = await db(table=1, filters={7: ('==', promo_code), 1: ('==', '')}, method=Method.COUNT, data=0) - 1
-                print(all_codes_used)
                 if not all_codes_used:
                     # Удаление всех одинаковых промокодов, если они уже были использованы всеми
                     await db(table=1, filters={7: ('==', promo_code)}, operation=Func.DELETE)
