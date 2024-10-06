@@ -54,6 +54,8 @@ async def save(message: Message):
     media_extension = media_file.split('.')[1]
 
     # Обновляем сообщение
+    if 'keyboard' not in msg:
+        msg['keyboard'] = 'basic_0'
     msg = await update_msg(msg=msg, user=message.from_user, new_media=True)
 
     # Отправляем сообщение с фото или другим медиа
@@ -81,7 +83,7 @@ async def start(message: Message, command: CommandObject):
     if referral_link and referral_link.isdigit() and await db(table=0, filters={1: ('==', int(referral_link))}, method=Method.COUNT,
                                             data=0):
         tokens = await db(table=3, filters={1: ('==', referral_link)}, data=8, method=Method.FIRST)
-        await db(table=3, filters={1: ('==', referral_link)}, data={8: tokens + 1}, operation=Func.UPDATE)
+        await db(table=3, filters={1: ('==', referral_link)}, data={8: tokens + 3}, operation=Func.UPDATE)
 
     # Создаем новую запись пользователя
     await db(table=0, data={1: tg_id}, operation=Func.ADD)
@@ -104,7 +106,7 @@ async def get_ads(message: Message):
 
     tg_id = message.from_user.id
 
-    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_balance')
+    phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_ads')
 
     # Клавиатура с кнопкой закрытия
     Button = InlineKeyboardButton
@@ -134,7 +136,7 @@ async def get_ads(message: Message):
             return
 
     # По окончании таймера выводим окончательное сообщение с кнопкой закрытия
-    await sent_message.edit_caption(caption=msg_text, reply_markup=a_keyboard)
+    await sent_message.edit_caption(caption=f'{msg_text}\n\n{phrases[2]}', reply_markup=a_keyboard)
 
     # Ждём 24 часа перед удалением рекламы
     await asyncio.sleep(24 * 60 * 60)

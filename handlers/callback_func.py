@@ -48,7 +48,7 @@ async def next_0_msg(call: CallbackQuery):
         db_data.update({2: message_id})
         message = await return_variable(f'message_0_{message_id}')
 
-    await next_and_back(msg_id, call, message, tg_id, db_data)
+    await next_and_back_0(msg_id, call, message, tg_id, db_data)
 
 
 @router.callback_query(lambda call: 'back_0' in call.data)
@@ -68,13 +68,15 @@ async def back_0_msg(call: CallbackQuery):
         msg_id = len(message) - 1
         db_data.update({2: message_id})
 
-    await next_and_back(msg_id, call, message, tg_id, db_data)
+    await next_and_back_0(msg_id, call, message, tg_id, db_data)
 
 
-async def next_and_back(msg_id, call, message, tg_id, db_data):
+async def next_and_back_0(msg_id, call, message, tg_id, db_data):
     db_data.update({11: msg_id})
 
     msg = message[msg_id]
+    if 'keyboard' not in msg:
+        msg['keyboard'] = 'basic_0'
     # Обновляем сообщение для пользователя
     msg = await update_msg(msg=msg, user=call.from_user)
     # Редактируем сообщение в чате
