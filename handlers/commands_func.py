@@ -199,7 +199,7 @@ async def buy(message: Message):
     sent_message = await message.answer_invoice(
         title=phrases[1],
         description=phrases[2],
-        prices=[LabeledPrice(label="XTR", amount=100)],
+        prices=[LabeledPrice(label="XTR", amount=1)],
         provider_token="",
         payload="no_ads",
         currency="XTR",
@@ -241,7 +241,7 @@ async def on_successful_payment(message: Message):
     # Добавляем запись о транзакции в базу данных (таблица Transactions)
     await db(
         table=4,
-        data={1: tg_id, 10: message.successful_payment.telegram_payment_charge_id, 13: datetime.now()},
+        data={10: message.successful_payment.telegram_payment_charge_id, 12: datetime.now()},
         operation=Func.ADD
     )
 
@@ -286,8 +286,8 @@ async def refund(message: Message, command: CommandObject):
                 else:
                     # Проверяем, был ли уже обработан возврат
                     refund_status = await db(
-                        table=4,  # Таблица Transactions
-                        filters={10: ('==', transaction_id)},
+                        table=3,  # Таблица Game
+                        filters={1: ('==', tg_id)},
                         data=13,  # 13 соответствует 'refund' в COLUMNS
                         method=Method.FIRST,
                         operation=Func.RETURN
@@ -297,14 +297,21 @@ async def refund(message: Message, command: CommandObject):
                     else:
                         # Обновляем статус возврата в базе данных
                         success_update = await db(
-                            table=4,
-                            filters={10: ('==', transaction_id)},
+                            table=3,
+                            filters={1: ('==', tg_id)},
                             data={13: True},  # Устанавливаем 'refund' в True
+                            operation=Func.UPDATE
+                        )
+                        # Обновляем поле 'premium' (9) для пользователя
+                        await db(
+                            table=3,
+                            filters={1: ('==', tg_id)},
+                            data={9: 0},
                             operation=Func.UPDATE
                         )
                         if success_update:
                             # Осуществляем возврат средств
-                            await bot.refund_star_payment(user_id=tg_id, transaction_id=transaction_id)
+                            await bot.refund_star_payment(user_id=tg_id, telegram_payment_charge_id=transaction_id)
                             text = phrases[2]  # Возврат успешно выполнен
                         else:
                             text = phrases[4]  # Ошибка при обновлении статуса возврата

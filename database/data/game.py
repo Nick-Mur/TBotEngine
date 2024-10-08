@@ -9,3 +9,4 @@ class Game(SqlAlchemyBase):
     message_id = Column(Integer, default=0)
     msg_id = Column(Integer, default=0)
     sent_message_id = Column(Integer)
+    refund = Column(Integer, default=0)
