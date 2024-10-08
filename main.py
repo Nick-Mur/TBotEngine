@@ -6,8 +6,11 @@ from handlers import text_func, commands_func, callback_func
 from database.data.db_session import global_init_async
 from consts import DB_PATH
 import logging
+from datetime import datetime, timezone
 
 from special.special_func import get_webhook_host
+from special.middleware import IgnoreOldMessagesMiddleware
+
 
 # Настройка переменных вебхука
 WEBHOOK_HOST = get_webhook_host()
@@ -25,6 +28,9 @@ logging.getLogger("aiogram.event").setLevel(logging.WARNING)  # Убираем �
 monitor_task = None
 
 
+BOT_START_TIME = datetime.now(timezone.utc)
+
+
 async def on_startup():
     from special.special_func import monitor_unsubscribes, get_user_language_phrases
     from database.db_operation import db, Method
@@ -37,6 +43,8 @@ async def on_startup():
 
     # Включаем обработчики (роутеры)
     dp.include_routers(commands_func.router, text_func.router, callback_func.router)
+
+    dp.update.outer_middleware(IgnoreOldMessagesMiddleware(BOT_START_TIME))
 
     # Отправка сообщений пользователям перед началом обработки команд (если не используется вебхук)
     if WEBHOOK_HOST:
