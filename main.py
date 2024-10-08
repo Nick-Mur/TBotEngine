@@ -1,4 +1,4 @@
-# импорты
+# Импорты
 from bot import dp, bot
 import asyncio
 from aiohttp import web
@@ -22,46 +22,93 @@ WEBAPP_PORT = 443  # HTTPS-сервер обычно работает на по�
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("aiogram.event").setLevel(logging.WARNING)  # Убираем подробные логи о каждом обновлении
 
-
-async def on_startup(app=None):
-    from special.special_func import monitor_unsubscribes
+monitor_task = None
 
 
-    """
-    Устанавливаем вебхук при старте приложения, если вебхук включён.
-    Если вебхук не используется, удаляем активный вебхук.
-    """
+async def on_startup():
+    from special.special_func import monitor_unsubscribes, get_user_language_phrases
+    from database.db_operation import db, Method
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+    global monitor_task
+
     # Инициализируем базу данных
     await global_init_async(DB_PATH)
 
     # Включаем обработчики (роутеры)
     dp.include_routers(commands_func.router, text_func.router, callback_func.router)
 
+    # Отправка сообщений пользователям перед началом обработки команд (если не используется вебхук)
     if WEBHOOK_HOST:
         # Устанавливаем вебхук
         await bot.set_webhook(WEBHOOK_URL)
         logging.info(f"Вебхук установлен: {WEBHOOK_URL}")
     else:
-        # Удаляем активный вебхук, если используется polling
         await bot.delete_webhook()
-        await dp.start_polling(bot)
-        logging.info("Вебхук удалён, запущен polling...")
+    tg_ids = await db(table=0, data=1, method=Method.ALL)
+
+    Button = InlineKeyboardButton
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
+
+    logging.info("Отправляем сообщения...")
+    for tg_id in tg_ids:
+        try:
+            phrase = await get_user_language_phrases(tg_id=tg_id, data='phrases_bot_start')
+            await bot.send_message(tg_id, phrase, reply_markup=keyboard)
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            pass
 
     # Запуск фоновой задачи для мониторинга подписок
-    await asyncio.create_task(monitor_unsubscribes())
+    logging.info("Запуск мониторинга подписок...")
+    monitor_task = asyncio.create_task(monitor_unsubscribes())
 
 
-async def on_shutdown(app=None):
+async def on_shutdown():
+    global monitor_task
     """
     Завершаем работу бота при завершении программы
     """
     if WEBHOOK_HOST:
         logging.info("Удаление вебхука...")
-        await bot.delete_webhook()
-        logging.info("Вебхук удалён.")
+        try:
+            await bot.delete_webhook()
+            logging.info("Вебхук удалён.")
+        except Exception as e:
+            logging.error(f"Ошибка при удалении вебхука: {e}")
+
+    if monitor_task:
+        logging.info("Отмена фоновой задачи...")
+        monitor_task.cancel()
+        try:
+            await monitor_task
+        except asyncio.CancelledError:
+            logging.info("Фоновая задача была успешно отменена.")
+
+    logging.info("Удаление всех сообщений из чата...")
+    tasks = [bot.delete_message(user_id, message_id) for message_id, user_id in commands_func.sent_messages]
+
+    # Выполняем все задачи
+    await asyncio.gather(*tasks, return_exceptions=True)
 
     # Закрываем сессию бота
-    await bot.session.close()
+    try:
+        await bot.session.close()
+        logging.info("Сессия бота закрыта.")
+    except Exception as e:
+        logging.error(f"Ошибка при закрытии сессии бота: {e}")
+
+    # Завершаем все оставшиеся задачи
+    loop = asyncio.get_running_loop()
+    pending = asyncio.all_tasks(loop=loop)
+    for task in pending:
+        if task is not asyncio.current_task():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+    dp.shutdown()
 
 
 async def handle_webhook(request):
@@ -80,6 +127,9 @@ async def handle_webhook(request):
 
 
 async def main():
+    # Инициализация перед началом работы
+    await on_startup()
+
     if WEBHOOK_HOST:
         # Настраиваем приложение aiohttp для работы с вебхуками
         app = web.Application()
@@ -87,8 +137,7 @@ async def main():
         # Маршрут для обработки вебхуков
         app.router.add_post(WEBHOOK_PATH, handle_webhook)
 
-        # Настраиваем события старта и завершения
-        app.on_startup.append(on_startup)
+        # Настраиваем события завершения
         app.on_shutdown.append(on_shutdown)
 
         # Запускаем веб-сервер
@@ -103,9 +152,11 @@ async def main():
         await asyncio.Event().wait()
     else:
         # Если вебхук не используется, запускаем polling
-        await on_startup()  # Выполняем инициализацию
-        await dp.start_polling(bot)
-
+        logging.info("Запуск polling...")
+        try:
+            await dp.start_polling(bot)
+        except asyncio.CancelledError:
+            logging.info("Polling был отменён.")
 
 if __name__ == "__main__":
     try:

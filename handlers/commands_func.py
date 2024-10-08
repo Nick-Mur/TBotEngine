@@ -10,7 +10,7 @@ from aiogram import Router, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
 
-from consts import DEBUG, ADMINS
+from consts import DEBUG, ADMINS, OWNER
 from traceback import print_exc
 
 from bot import bot
@@ -23,6 +23,8 @@ from database.db_consts import Func, Method
 
 
 router = Router()
+
+sent_messages = list()
 
 
 @router.message(Command("save"))
@@ -40,8 +42,7 @@ async def save(message: Message):
     try:
         await bot.delete_message(chat_id=message.chat.id, message_id=sent_message_id)
     except Exception as e:
-        if DEBUG:
-            print_exc()
+        pass
 
     message_id, msg_id = await db(filters={1: ('==', tg_id)}, data=[2, 11], method=Method.FIRST)
 
@@ -62,7 +63,7 @@ async def save(message: Message):
     if media_extension in ['png', 'jpeg', 'jpg']:
         sent_message = await message.answer_photo(photo=msg['media'], caption=msg['text'],
                                                   reply_markup=msg['keyboard'])
-
+    sent_messages.append((sent_message.message_id, tg_id))
     # Обновляем message_id в базе данных
     await db(table=3, filters={1: ('==', tg_id)}, data={4: sent_message.message_id}, operation=Func.UPDATE)
 
@@ -91,6 +92,7 @@ async def start(message: Message, command: CommandObject):
     # Отправляем сообщение пользователю
     msg = await update_msg(msg=message_0_0[0], user=message.from_user, new_media=True)
     sent_message = await message.answer_photo(photo=msg['media'], caption=msg['text'], reply_markup=msg['keyboard'])
+    sent_messages.append((sent_message.message_id, tg_id))
 
     # Создаем новую запись в таблице Game
     await db(table=3, data={1: tg_id, 4: sent_message.message_id}, operation=Func.ADD)
@@ -131,8 +133,6 @@ async def get_ads(message: Message):
             await sent_message.edit_caption(caption=f"{phrases[0]}: {i}\n\n{msg_text}")
             await asyncio.sleep(1)
         except Exception as e:
-            if DEBUG:
-                print_exc()
             return
 
     # По окончании таймера выводим окончательное сообщение с кнопкой закрытия
@@ -230,13 +230,6 @@ async def on_successful_payment(message: Message):
     from datetime import datetime
 
     tg_id = message.from_user.id
-
-    # Пытаемся удалить сообщение об успешной оплате
-    try:
-        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
-    except Exception as e:
-        if DEBUG:
-            print_exc()
 
     # Добавляем запись о транзакции в базу данных (таблица Transactions)
     await db(
@@ -441,6 +434,43 @@ async def code(message: Message, command: CommandObject):
         await send_func(message=message, text=phrases[10])
 
 
+@router.message(Command("shutdown"))
+async def shutdown(message: Message):
+    from main import on_shutdown
+
+
+    """
+    Команда /shutdown: отключает бота и завершает все сессии.
+    Доступна только владельцу.
+    """
+    tg_id = message.from_user.id
+
+    # Проверяем, что команду отправил администратор
+    if tg_id != OWNER:
+        return
+
+    try:
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    except:
+        pass
+
+    Button = InlineKeyboardButton
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
+
+    # Вызываем on_shutdown для выполнения всех завершающих операций
+    for _, user_id in sent_messages:
+        try:
+            phrase = await get_user_language_phrases(tg_id=user_id, data='phrases_bot_end')
+            await bot.send_message(user_id, phrase, reply_markup=keyboard)
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            pass
+
+    time_sleep = 5 if DEBUG else 5 * 60
+    await asyncio.sleep(time_sleep)
+    await on_shutdown()
+
+
 async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup = None):
     if keyboard is None:
         Button = InlineKeyboardButton
@@ -454,12 +484,14 @@ async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup 
 
 
 async def del_message(sent_message: Message, message: Message):
-    await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    try:
+        await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
+    except:
+        pass
 
     await asyncio.sleep(24 * 60 * 60)
 
     try:
         await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
     except:
-        if DEBUG:
-            print_exc()
+        pass
