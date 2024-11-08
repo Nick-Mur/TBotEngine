@@ -1,3 +1,10 @@
+"""
+Главный модуль для запуска бота TBotEngine.
+
+Этот модуль инициализирует бота, устанавливает обработчики, настраивает вебхук или polling,
+а также содержит функции для корректного запуска и завершения работы бота.
+"""
+
 # Импорты
 from app.bot import dp, bot
 import asyncio
@@ -11,6 +18,7 @@ from datetime import datetime, timezone
 from settings.special_func import get_webhook_host
 from middlewares.middleware import IgnoreOldMessagesMiddleware
 
+from database.core.db_consts import Tables, Columns, Method
 
 # Настройка переменных вебхука
 WEBHOOK_HOST = get_webhook_host()
@@ -27,13 +35,19 @@ logging.getLogger("aiogram.event").setLevel(logging.WARNING)  # Убираем �
 
 monitor_task = None
 
-
 BOT_START_TIME = datetime.now(timezone.utc)
 
 
-async def on_startup():
+async def on_startup() -> None:
+    """
+    Функция, выполняющаяся при запуске бота.
+
+    Инициализирует базу данных, включает обработчики (роутеры),
+    устанавливает вебхук (если используется), отправляет стартовые сообщения пользователям
+    и запускает фоновую задачу для мониторинга подписок.
+    """
     from settings.special_func import monitor_unsubscribes, get_user_language_phrases
-    from database.db_operation import db, Method
+    from database.db_operation import db
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
     global monitor_task
@@ -44,28 +58,36 @@ async def on_startup():
     # Включаем обработчики (роутеры)
     dp.include_routers(commands_func.router, text_func.router, callback_func.router)
 
+    # Добавляем middleware для игнорирования старых сообщений
     dp.update.outer_middleware(IgnoreOldMessagesMiddleware(BOT_START_TIME))
 
-    # Отправка сообщений пользователям перед началом обработки команд (если не используется вебхук)
+    # Отправка сообщений пользователям перед началом обработки команд
     if WEBHOOK_HOST:
         # Устанавливаем вебхук
         await bot.set_webhook(WEBHOOK_URL)
         logging.info(f"Вебхук установлен: {WEBHOOK_URL}")
     else:
+        # Удаляем вебхук, если он не используется
         await bot.delete_webhook()
-    tg_ids = await db(table=0, data=1, method=Method.ALL)
+
+    # Получаем список всех пользователей из базы данных
+    tg_ids = await db(
+        table=Tables.USER,
+        data=Columns.TG_ID,
+        method=Method.ALL
+    )
 
     Button = InlineKeyboardButton
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
 
-    logging.info("Отправляем сообщения...")
+    logging.info("Отправляем стартовые сообщения пользователям...")
     if not DEBUG:
         for tg_id in tg_ids:
             try:
                 phrase = await get_user_language_phrases(tg_id=tg_id, data='phrases_bot_start')
                 await bot.send_message(tg_id, phrase, reply_markup=keyboard)
                 await asyncio.sleep(0.1)
-            except Exception as e:
+            except Exception:
                 pass
 
     # Запуск фоновой задачи для мониторинга подписок
@@ -73,11 +95,15 @@ async def on_startup():
     monitor_task = asyncio.create_task(monitor_unsubscribes())
 
 
-async def on_shutdown():
+async def on_shutdown() -> None:
+    """
+    Функция, выполняющаяся при завершении работы бота.
+
+    Отменяет фоновые задачи, удаляет вебхук, очищает сессии, удаляет сообщения
+    и корректно завершает все асинхронные операции.
+    """
     global monitor_task
-    """
-    Завершаем работу бота при завершении программы
-    """
+
     if WEBHOOK_HOST:
         logging.info("Удаление вебхука...")
         try:
@@ -97,7 +123,7 @@ async def on_shutdown():
     logging.info("Удаление всех сообщений из чата...")
     tasks = [bot.delete_message(user_id, message_id) for message_id, user_id in commands_func.sent_messages]
 
-    # Выполняем все задачи
+    # Выполняем все задачи удаления сообщений
     await asyncio.gather(*tasks, return_exceptions=True)
 
     # Закрываем сессию бота
@@ -117,12 +143,19 @@ async def on_shutdown():
                 await task
             except asyncio.CancelledError:
                 pass
+
     dp.shutdown()
 
 
-async def handle_webhook(request):
+async def handle_webhook(request: web.Request) -> web.Response:
     """
-    Обработчик для входящих запросов от Telegram через вебхук
+    Обработчик для входящих запросов от Telegram через вебхук.
+
+    Параметры:
+        request (web.Request): Входящий запрос от Telegram.
+
+    Возвращает:
+        web.Response: Ответ для подтверждения успешной обработки.
     """
     try:
         request_data = await request.json()
@@ -135,7 +168,12 @@ async def handle_webhook(request):
         return web.Response(status=500)
 
 
-async def main():
+async def main() -> None:
+    """
+    Главная функция запуска бота.
+
+    Инициализирует бота, запускает веб-сервер для вебхуков или polling в зависимости от настроек.
+    """
     # Инициализация перед началом работы
     await on_startup()
 
@@ -167,8 +205,9 @@ async def main():
         except asyncio.CancelledError:
             logging.info("Polling был отменён.")
 
+
 if __name__ == "__main__":
     try:
-        asyncio.run(main())  # Используем asyncio.run вместо get_event_loop
+        asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
         logging.info("Бот остановлен")
