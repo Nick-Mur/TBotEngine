@@ -1,4 +1,4 @@
-from special.decorate_text import exp_bl
+from utils.decorate_text import exp_bl
 
 
 phrases_ads = {
@@ -81,3 +81,4 @@ phrases_info = (f'1) Токены.\n{phrases_info_tokens}'
 phrases_bot_end = exp_bl('Через 5-10 минут бот уйдёт на тех. перерыв, сюжетное сообщение будет удалено.\n'
                    'После возвращения бота в рабочее состояние можно будет вернуться к игре.')
 phrases_bot_start = exp_bl('Бот вернулся с тех. перерыва. Чтобы вернуться к сюжету введите "/save" или "/start".')
+phrases_language = 'Выберите язык.'

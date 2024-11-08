@@ -3,6 +3,7 @@ from aiogram.types import InlineKeyboardButton
 
 Button = InlineKeyboardButton
 
+close_btn = Button(text='❌', callback_data='close')
 next_0_btn = Button(text='➡️', callback_data='next_0')
 back_0_btn = Button(text='⬅️', callback_data='back_0')
 

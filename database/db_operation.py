@@ -3,9 +3,9 @@ from sqlalchemy import select, update, delete, asc, desc, func as sql_func, and_
 
 from traceback import print_exc
 
-from database.db_consts import *
-from consts import DEBUG
-from database.data.db_session import create_async_session
+from database.core.db_consts import *
+from app.consts import DEBUG
+from database.core.db_session import create_async_session
 
 
 async def db(

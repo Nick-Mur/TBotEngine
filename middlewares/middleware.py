@@ -14,8 +14,6 @@ class IgnoreOldMessagesMiddleware(BaseMiddleware):
             message_date = event.message.date
         elif event.edited_message:
             message_date = event.edited_message.date
-        elif event.callback_query:
-            message_date = event.callback_query.message.date if event.callback_query.message else None
         # Добавьте другие типы событий, если необходимо
 
         if message_date and message_date < self.bot_start_time:

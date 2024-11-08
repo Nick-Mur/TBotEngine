@@ -1,5 +1,5 @@
 from database.db_operation import db
-from database.db_consts import Func, Method
+from database.core.db_consts import Func, Method
 
 
 async def find_next_message_0(message_id, choice=None, tg_id=None):

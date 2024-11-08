@@ -1,14 +1,15 @@
+from app.consts import SPECIAL_PHRASES
 from settings.config_reader import config
 
-from text.phrases.ru_phrases.phrases_0 import *
-from text.buttons.buttons_0 import *
-from text.media.media_0 import *
-from text.keyboards.keyboards_0 import *
-from text.messages.messages_0 import *
+from resources.phrases.ru.phrases_0 import *
+from resources.buttons_0 import *
+from resources.media.media_py.media_0 import *
+from resources.keyboards_0 import *
+from resources.messages.messages_0 import *
 
-from text.phrases.ru_phrases.phrases_1 import *
-from text.media.media_1 import *
-from text.messages.messages_1 import *
+from resources.phrases.ru.phrases_1 import *
+from resources.media.media_py.media_1 import *
+from resources.messages.messages_1 import *
 
 
 def get_bot_token():
@@ -28,7 +29,7 @@ async def return_variable(value):
 
 async def monitor_unsubscribes():
     from database.db_operation import db
-    from database.db_consts import Method, Func
+    from database.core.db_consts import Method, Func
     from asyncio import sleep
 
     """
@@ -74,8 +75,8 @@ async def monitor_unsubscribes():
 
 
 async def check_subscription(user_id: int) -> dict:
-    from bot import bot
-    from consts import CHANNEL_IDS
+    from app.bot import bot
+    from app.consts import CHANNEL_IDS
 
 
     """
@@ -108,7 +109,7 @@ async def check_subscription(user_id: int) -> dict:
 
 async def get_user_language_phrases(tg_id: int, data: str):
     from database.db_operation import db
-    from database.db_consts import Method, Func
+    from database.core.db_consts import Method, Func
     from importlib import import_module
 
     # Создаем сессию для взаимодействия с базой данных
@@ -120,9 +121,8 @@ async def get_user_language_phrases(tg_id: int, data: str):
         method=Method.FIRST,
         operation=Func.RETURN
     )
-
     # Импортируем модуль с фразами для нужного языка
-    module = import_module(f'text.phrases.{user_language}_phrases.special_phrases')
+    module = import_module(f'{SPECIAL_PHRASES}.{user_language}.special_phrases')
 
     # Возвращаем объект (например, массив), который соответствует строке `data`
     phrases = getattr(module, data, None)

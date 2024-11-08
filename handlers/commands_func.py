@@ -3,23 +3,23 @@ from aiogram.exceptions import TelegramBadRequest
 from database.db_operation import db
 
 
-from text.msg_func import update_msg
+from utils.msg_func import update_msg
 
 
 from aiogram import Router, F
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
 
-from consts import DEBUG, ADMINS, OWNER
+from app.consts import DEBUG, ADMINS, OWNER
 from traceback import print_exc
 
-from bot import bot
+from app.bot import bot
 
-from special.special_func import return_variable, get_user_language_phrases
+from settings.special_func import return_variable, get_user_language_phrases
 
 import asyncio
 
-from database.db_consts import Func, Method
+from database.core.db_consts import Func, Method
 
 
 router = Router()
@@ -73,7 +73,7 @@ async def save(message: Message):
 
 @router.message(Command("start"))
 async def start(message: Message, command: CommandObject):
-    from text.messages.messages_0 import message_0_0
+    from resources.messages.messages_0 import message_0_0
 
     tg_id = message.from_user.id
     # Поиск пользователя по tg_id
@@ -87,6 +87,7 @@ async def start(message: Message, command: CommandObject):
         await db(table=3, filters={1: ('==', referral_link)}, data={8: tokens + 3}, operation=Func.UPDATE)
 
     # Создаем новую запись пользователя
+    await db(table=0, data={1: tg_id}, operation=Func.ADD)
     await db(table=0, data={1: tg_id}, operation=Func.ADD)
 
     # Отправляем сообщение пользователю
@@ -104,7 +105,7 @@ async def start(message: Message, command: CommandObject):
 @router.message(Command("ads"))
 async def get_ads(message: Message):
     from random import choice
-    from text.messages.messages_1 import messages_1
+    from resources.messages.messages_1 import messages_1
 
     tg_id = message.from_user.id
 
@@ -165,7 +166,7 @@ async def get_balance(message: Message):
 
 @router.message(Command("ref"))
 async def get_referral_link(message: Message):
-    from special.decorate_text import link
+    from utils.decorate_text import link
 
     tg_id = message.from_user.id
     bot_username = (await bot.get_me()).username
@@ -320,8 +321,8 @@ async def refund(message: Message, command: CommandObject):
 
 @router.message(Command("member"))
 async def member(message: Message):
-    from special.special_func import check_subscription
-    from special.decorate_text import exp_bl
+    from settings.special_func import check_subscription
+    from utils.decorate_text import exp_bl
 
 
     """
@@ -334,14 +335,14 @@ async def member(message: Message):
     phrases = await get_user_language_phrases(tg_id=tg_id, data='phrases_member')
 
     # Проверка подписки на все каналы
-    if all(subscription_results.values()):
+    if all(subscription_results.values()) and True in subscription_results.values():
         await send_func(message=message, text=phrases[0])
     else:
         # Сообщаем пользователю, на какие каналы он не подписан
         not_subscribed_channels = [channel for channel, subscribed in subscription_results.items() if not subscribed]
         not_subscribed_list = "\n".join(not_subscribed_channels)
         not_subscribed_list = exp_bl(not_subscribed_list)
-        await send_func(message=message, text=f'{phrases[0]}\n{not_subscribed_list}\n')
+        await send_func(message=message, text=f'{phrases[1]}\n{not_subscribed_list}\n')
 
 
 @router.message(Command("info"))
@@ -458,17 +459,31 @@ async def shutdown(message: Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
 
     # Вызываем on_shutdown для выполнения всех завершающих операций
-    for _, user_id in sent_messages:
-        try:
-            phrase = await get_user_language_phrases(tg_id=user_id, data='phrases_bot_end')
-            await bot.send_message(user_id, phrase, reply_markup=keyboard)
-            await asyncio.sleep(0.1)
-        except Exception as e:
-            pass
+    if not DEBUG:
+        for _, user_id in sent_messages:
+            try:
+                phrase = await get_user_language_phrases(tg_id=user_id, data='phrases_bot_end')
+                await bot.send_message(user_id, phrase, reply_markup=keyboard)
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                pass
 
-    time_sleep = 5 if DEBUG else 5 * 60
+    time_sleep = 5 if DEBUG else 5
     await asyncio.sleep(time_sleep)
     await on_shutdown()
+
+
+"""
+@router.message(Command("language"))
+async def language(message: Message):
+    tg_id = message.from_user.id
+
+    phrase = await get_user_language_phrases(tg_id=tg_id, data='phrases_language')
+
+    text = f'{phrases[0]}: {tokens}'
+    # Отправляем сообщение пользователю
+    await send_func(message=message, text=text)
+"""
 
 
 async def send_func(message: Message, text: str, keyboard: InlineKeyboardMarkup = None):

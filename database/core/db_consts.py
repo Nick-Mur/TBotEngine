@@ -1,8 +1,8 @@
-from database.data.user import User
-from database.data.choices import Choices
-from database.data.game import Game
-from database.data.transactions import Transactions
-from database.data.promo import Promo
+from database.models.user import User
+from database.models.choices import Choices
+from database.models.game import Game
+from database.models.transactions import Transactions
+from database.models.promo import Promo
 
 from enum import Enum
 from operator import eq, ne, gt, lt, ge, le
@@ -19,6 +19,32 @@ class Func(Enum):
     UPDATE = 1
     ADD = 2
     DELETE = 3
+
+class Tables(Enum):
+    USER = 0
+    PROMO = 1
+    CHOICES = 2
+    GAME = 3
+    TRANSACTIONS = 4
+
+
+class Columns(Enum):
+    ID = 0
+    TG_ID = 1
+    MESSAGE_ID = 2
+    LANGUAGE = 3
+    SENT_MESSAGE_ID = 4
+    CHOICES_ID = 5
+    RESULT_CHOICES = 6
+    CODE = 7
+    TOKENS = 8
+    PREMIUM = 9
+    TRANSACTIONS_ID = 10
+    MSG_ID = 11
+    DATE = 12
+    REFUND = 13
+    VALUE = 14
+
 
 # Словарь операторов для фильтрации
 operators = {

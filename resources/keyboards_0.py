@@ -1,4 +1,4 @@
-from text.buttons.buttons_0 import *
+from resources.buttons_0 import *
 
 
 basic_0 = [[back_0_btn, next_0_btn]]

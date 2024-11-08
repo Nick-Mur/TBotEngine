@@ -1,10 +1,10 @@
 from database.db_operation import db
-from database.db_consts import Method
+from database.core.db_consts import Method
 
 
-from consts import MEDIA_PHOTO
+from app.consts import MEDIA_PHOTO
 
-from special.special_func import return_variable
+from settings.special_func import return_variable
 from aiogram.types import Message, InlineKeyboardMarkup, InputMediaPhoto, FSInputFile
 
 

@@ -1,15 +1,15 @@
 # Импорты
-from bot import dp, bot
+from app.bot import dp, bot
 import asyncio
 from aiohttp import web
 from handlers import text_func, commands_func, callback_func
-from database.data.db_session import global_init_async
-from consts import DB_PATH
+from database.core.db_session import global_init_async
+from app.consts import DB_PATH, DEBUG
 import logging
 from datetime import datetime, timezone
 
-from special.special_func import get_webhook_host
-from special.middleware import IgnoreOldMessagesMiddleware
+from settings.special_func import get_webhook_host
+from middlewares.middleware import IgnoreOldMessagesMiddleware
 
 
 # Настройка переменных вебхука
@@ -32,7 +32,7 @@ BOT_START_TIME = datetime.now(timezone.utc)
 
 
 async def on_startup():
-    from special.special_func import monitor_unsubscribes, get_user_language_phrases
+    from settings.special_func import monitor_unsubscribes, get_user_language_phrases
     from database.db_operation import db, Method
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -59,13 +59,14 @@ async def on_startup():
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[Button(text='❌', callback_data='close')]])
 
     logging.info("Отправляем сообщения...")
-    for tg_id in tg_ids:
-        try:
-            phrase = await get_user_language_phrases(tg_id=tg_id, data='phrases_bot_start')
-            await bot.send_message(tg_id, phrase, reply_markup=keyboard)
-            await asyncio.sleep(0.1)
-        except Exception as e:
-            pass
+    if not DEBUG:
+        for tg_id in tg_ids:
+            try:
+                phrase = await get_user_language_phrases(tg_id=tg_id, data='phrases_bot_start')
+                await bot.send_message(tg_id, phrase, reply_markup=keyboard)
+                await asyncio.sleep(0.1)
+            except Exception as e:
+                pass
 
     # Запуск фоновой задачи для мониторинга подписок
     logging.info("Запуск мониторинга подписок...")

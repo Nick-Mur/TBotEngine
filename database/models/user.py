@@ -1,4 +1,4 @@
-from database.data.db_imports import *
+from database.core.db_imports import *
 
 
 class User(SqlAlchemyBase):

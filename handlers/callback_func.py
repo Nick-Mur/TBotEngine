@@ -1,20 +1,20 @@
-from edit_func import edit
+from utils.edit_func import edit
 
-from find_message.find_message_0 import find_next_message_0, find_previous_message_0
+from utils.find_message import find_next_message_0, find_previous_message_0
 
-from text.msg_func import update_msg
+from utils.msg_func import update_msg
 
-from bot import bot
+from app.bot import bot
 
 from aiogram import Router
 from aiogram.types import CallbackQuery
 
 from database.db_operation import db
-from database.db_consts import Func, Method
+from database.core.db_consts import Func, Method
 
-from consts import DEBUG
+from app.consts import DEBUG
 
-from special.special_func import return_variable
+from settings.special_func import return_variable
 
 from traceback import print_exc
 

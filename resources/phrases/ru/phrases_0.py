@@ -1,4 +1,4 @@
-from special.decorate_text import *
+from utils.decorate_text import *
 
 
 ru_phrase_0_0_0 = 'Всем привет!'
