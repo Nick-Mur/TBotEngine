@@ -1,6 +1,7 @@
 from aiogram.exceptions import TelegramBadRequest
 
 from database.db_operation import db
+from resources.keyboards import close_ad_keyboard, close_keyboard, language_keyboard
 
 from utils.msg_func import update_msg
 
@@ -24,6 +25,8 @@ from settings.special_func import return_variable, get_user_language_phrases
 import asyncio
 
 from database.core.db_consts import Func, Method, Tables, Columns, Operators
+
+from resources.buttons import *
 
 router = Router()
 
@@ -187,12 +190,6 @@ async def get_ads(message: Message) -> None:
 
     phrases = await get_user_language_phrases(tg_id=tg_id, data="phrases_ads")
 
-    # Создаем клавиатуру с кнопкой закрытия
-    Button = InlineKeyboardButton
-    a_keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[Button(text="❌", callback_data="close_ad")]]
-    )
-
     # Выбираем случайное рекламное сообщение
     msg = await update_msg(
         msg=choice(messages_1), user=message.from_user, new_media=True
@@ -220,7 +217,7 @@ async def get_ads(message: Message) -> None:
 
     # По окончании таймера добавляем кнопку закрытия
     await sent_message.edit_caption(
-        caption=f"{msg_text}\n\n{phrases[2]}", reply_markup=a_keyboard
+        caption=f"{msg_text}\n\n{phrases[2]}", reply_markup=close_ad_keyboard
     )
 
     # Ждем 24 часа и удаляем сообщение
@@ -306,7 +303,7 @@ async def buy(message: Message) -> None:
     a_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [Button(text=phrases[0], pay=True)],
-            [Button(text="❌", callback_data="close")],
+            [close_btn],
         ]
     )
     sent_message = await message.answer_invoice(
@@ -647,11 +644,6 @@ async def shutdown(message: Message) -> None:
     except Exception:
         pass
 
-    Button = InlineKeyboardButton
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[Button(text="❌", callback_data="close")]]
-    )
-
     # Отправляем уведомление всем пользователям перед отключением
     if not DEBUG:
         for _, user_id in sent_messages:
@@ -659,7 +651,7 @@ async def shutdown(message: Message) -> None:
                 phrase = await get_user_language_phrases(
                     tg_id=user_id, data="phrases_bot_end"
                 )
-                await bot.send_message(user_id, phrase, reply_markup=keyboard)
+                await bot.send_message(user_id, phrase, reply_markup=close_keyboard)
                 await asyncio.sleep(0.1)
             except Exception:
                 pass
@@ -669,19 +661,31 @@ async def shutdown(message: Message) -> None:
     await on_shutdown()
 
 
+@router.message(Command("language"))
+async def language(message: Message) -> None:
+    """
+    Обработчик команды /lang.
+
+    Отправляет пользователю сообщение с выбором языка.
+    """
+    from settings.special_func import get_user_language_phrases  # Импортируйте при необходимости
+
+    tg_id = message.from_user.id
+
+    phrase = await get_user_language_phrases(tg_id=tg_id, data="phrases_language")
+    await send_func(message=message, text=phrase, keyboard=language_keyboard)
+
+
+
 async def send_func(
-    message: Message, text: str, keyboard: InlineKeyboardMarkup = None
+    message: Message, text: str, keyboard: InlineKeyboardMarkup = close_keyboard
 ) -> None:
     """
     Вспомогательная функция для отправки сообщений пользователю.
 
     Отправляет сообщение и планирует его удаление через 24 часа.
     """
-    if keyboard is None:
-        Button = InlineKeyboardButton
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[[Button(text="❌", callback_data="close")]]
-        )
+
     sent_message = await message.answer(text=text, reply_markup=keyboard)
 
     await del_message(sent_message, message)

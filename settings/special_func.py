@@ -1,10 +1,11 @@
 from app.consts import SPECIAL_PHRASES
 from settings.config_reader import config
 
+from resources.buttons import *
+from resources.keyboards import *
+
 from resources.phrases.ru.phrases_0 import *
-from resources.buttons_0 import *
 from resources.media.media_py.media_0 import *
-from resources.keyboards_0 import *
 from resources.messages.messages_0 import *
 
 from resources.phrases.ru.phrases_1 import *

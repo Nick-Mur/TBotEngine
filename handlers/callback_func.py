@@ -165,6 +165,34 @@ async def close_message(call: CallbackQuery) -> None:
             print_exc()
 
 
+@router.callback_query(lambda call: 'language' in call.data)
+async def language_selection(callback: CallbackQuery) -> None:
+    """
+    Обработчик выбора языка пользователем.
+
+    Обновляет язык пользователя в базе данных и удаляет сообщение.
+    """
+    from settings.special_func import get_user_language_phrases  # Импортируйте при необходимости
+
+    tg_id = callback.from_user.id
+    selected_language = callback.data.split('_')[1]
+
+    # Обновляем язык пользователя в базе данных
+    await db(
+        table=Tables.USER,
+        filters={Columns.TG_ID: (Operators.EQ, tg_id)},
+        data={Columns.LANGUAGE: selected_language},
+        operation=Func.UPDATE
+    )
+
+    # Удаляем сообщение с выбором языка
+    try:
+        await callback.message.delete()
+    except Exception as e:
+        if DEBUG:
+            print_exc()
+
+
 @router.callback_query()
 async def handle_any_callback(call: CallbackQuery) -> None:
     """

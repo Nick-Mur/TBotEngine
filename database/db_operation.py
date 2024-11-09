@@ -1,5 +1,4 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
-from webbrowser import Galeon
 
 from sqlalchemy import select, update, delete, asc, desc, func as sql_func, and_
 from sqlalchemy.exc import SQLAlchemyError
