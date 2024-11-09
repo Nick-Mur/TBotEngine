@@ -9,6 +9,7 @@ close_ad_btn = Button(text="❌", callback_data="close_ad")
 rus_btn = Button(text="Русский", callback_data="language_ru")
 eng_btn = Button(text="English", callback_data="language_eng")
 
+confirm_restart_btn = Button(text="✅", callback_data="confirm_restart")
 
 
 next_0_btn = Button(text='➡️', callback_data='next_0')

@@ -1,4 +1,4 @@
-DEBUG = False
+DEBUG = True
 DB_PATH = 'database\project.db'
 MEDIA_PHOTO = 'resources/media/images/'
 SPECIAL_PHRASES = 'resources.phrases'

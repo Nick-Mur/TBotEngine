@@ -7,6 +7,8 @@
 
 # Импорты
 from app.bot import dp, bot
+from app.temporary_data import sent_messages
+
 import asyncio
 from aiohttp import web
 from handlers import text_func, commands_func, callback_func
@@ -121,7 +123,7 @@ async def on_shutdown() -> None:
             logging.info("Фоновая задача была успешно отменена.")
 
     logging.info("Удаление всех сообщений из чата...")
-    tasks = [bot.delete_message(user_id, message_id) for message_id, user_id in commands_func.sent_messages]
+    tasks = [bot.delete_message(user_id, message_id) for message_id, user_id in sent_messages]
 
     # Выполняем все задачи удаления сообщений
     await asyncio.gather(*tasks, return_exceptions=True)

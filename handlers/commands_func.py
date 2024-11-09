@@ -1,7 +1,7 @@
 from aiogram.exceptions import TelegramBadRequest
 
 from database.db_operation import db
-from resources.keyboards import close_ad_keyboard, close_keyboard, language_keyboard
+from resources.keyboards import close_ad_keyboard, close_keyboard, language_keyboard, restart_keyboard
 
 from utils.msg_func import update_msg
 
@@ -10,12 +10,13 @@ from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     Message,
     InlineKeyboardMarkup,
-    InlineKeyboardButton,
     LabeledPrice,
     PreCheckoutQuery,
 )
 
 from app.consts import DEBUG, ADMINS, OWNER
+from app.temporary_data import sent_messages
+
 from traceback import print_exc
 
 from app.bot import bot
@@ -30,8 +31,6 @@ from resources.buttons import *
 
 router = Router()
 
-sent_messages = list()
-
 
 @router.message(Command("save"))
 async def save(message: Message) -> None:
@@ -41,17 +40,11 @@ async def save(message: Message) -> None:
     Сохраняет текущее состояние пользователя и отправляет обновленное сообщение.
     Если пользователь не существует, инициирует процедуру регистрации через функцию start.
     """
+    
+    if not await check_user(message):
+        return 
+    
     tg_id: int = message.from_user.id
-
-    # Проверяем, существует ли пользователь в базе данных
-    user = await db(
-        table=Tables.USER,
-        filters={Columns.TG_ID: (Operators.EQ, tg_id)},
-        method=Method.COUNT,
-        data=Columns.ID,
-    )
-    if not user:
-        await start(message=message)
 
     # Получаем идентификатор отправленного сообщения
     sent_message_id = await db(
@@ -115,20 +108,14 @@ async def start(message: Message, command: CommandObject) -> None:
     Обрабатывает реферальные ссылки и начисляет бонусные токены рефереру.
     Отправляет приветственное сообщение и сохраняет его идентификатор.
     """
+
+    if await check_user(message):
+        await save(message=message)
+        return
+
     from resources.messages.messages_0 import message_0_0
 
     tg_id: int = message.from_user.id
-
-    # Проверяем, существует ли пользователь в базе данных
-    user = await db(
-        table=Tables.USER,
-        filters={Columns.TG_ID: (Operators.EQ, tg_id)},
-        method=Method.COUNT,
-        data=Columns.ID,
-    )
-    if user:
-        await save(message=message)
-        return
 
     referral_link = command.args
     if (
@@ -183,6 +170,10 @@ async def get_ads(message: Message) -> None:
     Отправляет пользователю рекламное сообщение с таймером.
     После завершения таймера предлагает пользователю закрыть сообщение.
     """
+    
+    if not await check_user(message):
+        return 
+    
     from random import choice
     from resources.messages.messages_1 import messages_1
 
@@ -238,6 +229,10 @@ async def get_balance(message: Message) -> None:
 
     Отправляет пользователю информацию о текущем балансе токенов.
     """
+    
+    if not await check_user(message):
+        return 
+    
     tg_id: int = message.from_user.id
 
     # Получаем количество токенов пользователя
@@ -262,6 +257,10 @@ async def get_referral_link(message: Message) -> None:
 
     Генерирует и отправляет пользователю его реферальную ссылку.
     """
+    
+    if not await check_user(message):
+        return 
+    
     from utils.decorate_text import link
 
     tg_id: int = message.from_user.id
@@ -285,6 +284,10 @@ async def buy(message: Message) -> None:
 
     Отправляет пользователю счет на оплату для приобретения премиум доступа.
     """
+    
+    if not await check_user(message):
+        return 
+    
     tg_id: int = message.from_user.id
 
     # Проверяем, существует ли пользователь
@@ -378,6 +381,10 @@ async def refund(message: Message, command: CommandObject) -> None:
 
     Позволяет пользователю запросить возврат средств за последние 60 минут после покупки.
     """
+    
+    if not await check_user(message):
+        return 
+
     from datetime import datetime
 
     tg_id: int = message.from_user.id
@@ -454,6 +461,10 @@ async def member(message: Message) -> None:
 
     Проверяет подписку пользователя на обязательные каналы и уведомляет о результате.
     """
+    
+    if not await check_user(message):
+        return 
+    
     from settings.special_func import check_subscription
     from utils.decorate_text import exp_bl
 
@@ -487,6 +498,10 @@ async def info(message: Message) -> None:
 
     Отправляет пользователю информационное сообщение.
     """
+    
+    if not await check_user(message):
+        return 
+    
     tg_id: int = message.from_user.id
 
     phrases = await get_user_language_phrases(tg_id=tg_id, data="phrases_info")
@@ -668,13 +683,31 @@ async def language(message: Message) -> None:
 
     Отправляет пользователю сообщение с выбором языка.
     """
-    from settings.special_func import get_user_language_phrases  # Импортируйте при необходимости
+
+    if not await check_user(message):
+        return 
 
     tg_id = message.from_user.id
 
     phrase = await get_user_language_phrases(tg_id=tg_id, data="phrases_language")
     await send_func(message=message, text=phrase, keyboard=language_keyboard)
 
+
+@router.message(Command("restart"))
+async def restart_command(message: Message) -> None:
+    """
+    Обработчик команды /restart.
+
+    Сброс игры.
+    """
+    
+    if not await check_user(message):
+        return 
+
+    tg_id = message.from_user.id
+
+    phrase = await get_user_language_phrases(tg_id=tg_id, data="phrases_restart")
+    await send_func(message=message, text=phrase, keyboard=restart_keyboard)
 
 
 async def send_func(
@@ -710,3 +743,24 @@ async def del_message(sent_message: Message, message: Message) -> None:
         )
     except Exception:
         pass
+
+
+async def check_user(message: Message) -> None:
+    """
+    Проверяет, существует ли пользователь в базе данных.
+
+    Если пользователь не найден, вызывает функцию `start` для инициализации пользователя, возвращая False, иначе - True.
+    """
+    
+    tg_id = message.from_user.id
+    # Проверяем, существует ли пользователь в базе данных
+    user = await db(
+        table=Tables.USER,
+        filters={Columns.TG_ID: (Operators.EQ, tg_id)},
+        method=Method.COUNT,
+        data=Columns.ID,
+    )
+    if not user:
+        await start(message=message)
+        return False
+    return True

@@ -2,18 +2,23 @@
 Обработчики callback-запросов для TBotEngine.
 Этот модуль содержит функции для обработки различных callback-запросов от inline-кнопок, таких как навигация вперед и назад, закрытие сообщений, а также обработка любых других callback-запросов.
 """
-
 from utils.edit_func import edit
 from utils.find_message import find_next_message_0, find_previous_message_0
 from utils.msg_func import update_msg
-from app.bot import bot
+
 from aiogram import Router
 from aiogram.types import CallbackQuery
+
 from database.db_operation import db
 from database.core.db_consts import Func, Method, Tables, Columns, Operators
+
 from app.consts import DEBUG
+from app.temporary_data import sent_messages
+
 from settings.special_func import return_variable
+
 from traceback import print_exc
+
 from typing import Dict, Any, List, Optional
 
 router = Router()
@@ -155,12 +160,8 @@ async def close_message(call: CallbackQuery) -> None:
         )
 
     try:
-        # Удаляем сообщение
-        await bot.delete_message(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id
-        )
-    except Exception:
+        await call.message.delete()
+    except Exception as e:
         if DEBUG:
             print_exc()
 
@@ -191,6 +192,58 @@ async def language_selection(callback: CallbackQuery) -> None:
     except Exception as e:
         if DEBUG:
             print_exc()
+
+
+@router.callback_query(lambda call: 'confirm_restart' in call.data)
+async def confirm_restart(callback: CallbackQuery) -> None:
+    """
+    Обработчик сброса сюжета.
+
+    Перезапускает игру.
+    """
+    tg_id = callback.from_user.id
+    await db(
+        table=Tables.CHOICES,
+        filters={Columns.TG_ID: (Operators.EQ, tg_id)},
+        operation=Func.DELETE,
+        method=Method.ALL
+    )
+    await db(
+        table=Tables.GAME,
+        filters={Columns.TG_ID: (Operators.EQ, tg_id)},
+        data={Columns.MESSAGE_ID: 0, Columns.MSG_ID: 0},
+        operation=Func.UPDATE
+    )
+    try:
+        await callback.message.delete()
+
+        # start
+
+        from resources.messages.messages_0 import message_0_0
+        from app.bot import bot
+
+        # Получаем идентификатор отправленного сообщения
+        sent_message_id = await db(
+            table=Tables.GAME,
+            filters={Columns.TG_ID: (Operators.EQ, tg_id)},
+            data=Columns.SENT_MESSAGE_ID,
+            method=Method.FIRST,
+        )
+
+        # Пытаемся удалить старое сообщение пользователя
+        try:
+            await bot.delete_message(chat_id=callback.message.chat.id, message_id=sent_message_id)
+        except Exception:
+            pass
+
+        msg = await update_msg(msg=message_0_0[0], user=callback.from_user, new_media=True)
+        sent_message = await bot.send_photo(photo=msg["media"], caption=msg["text"], reply_markup=msg["keyboard"], chat_id=callback.message.chat.id)
+        sent_messages.append((sent_message.message_id, tg_id))
+
+    except Exception as e:
+        if DEBUG:
+            print_exc()
+
 
 
 @router.callback_query()
