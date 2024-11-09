@@ -660,16 +660,15 @@ async def shutdown(message: Message) -> None:
         pass
 
     # Отправляем уведомление всем пользователям перед отключением
-    if not DEBUG:
-        for _, user_id in sent_messages:
-            try:
-                phrase = await get_user_language_phrases(
-                    tg_id=user_id, data="phrases_bot_end"
-                )
-                await bot.send_message(user_id, phrase, reply_markup=close_keyboard)
-                await asyncio.sleep(0.1)
-            except Exception:
-                pass
+    for _, user_id in sent_messages:
+        try:
+            phrase = await get_user_language_phrases(
+                tg_id=user_id, data="phrases_bot_end"
+            )
+            await bot.send_message(user_id, phrase, reply_markup=close_keyboard)
+            await asyncio.sleep(0.1)
+        except Exception:
+            pass
 
     time_sleep = 5
     await asyncio.sleep(time_sleep)
