@@ -84,12 +84,13 @@ async def on_startup() -> None:
 
     logging.info("Отправляем стартовые сообщения пользователям...")
     for tg_id in tg_ids:
-        try:
-            phrase = await get_user_language_phrases(tg_id=tg_id, data='phrases_bot_start')
-            await bot.send_message(tg_id, phrase, reply_markup=keyboard)
-            await asyncio.sleep(0.1)
-        except Exception:
-            pass
+        if not DEBUG:
+            try:
+                phrase = await get_user_language_phrases(tg_id=tg_id, data='phrases_bot_start')
+                await bot.send_message(tg_id, phrase, reply_markup=keyboard)
+                await asyncio.sleep(0.1)
+            except Exception:
+                pass
 
     # Запуск фоновой задачи для мониторинга подписок
     logging.info("Запуск мониторинга подписок...")
