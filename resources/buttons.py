@@ -15,5 +15,5 @@ confirm_restart_btn = Button(text="✅", callback_data="confirm_restart")
 next_0_btn = Button(text='➡️', callback_data='next_0')
 back_0_btn = Button(text='⬅️', callback_data='back_0')
 
-a_0_btn = Button(text='A', callback_data='next_0_a')
-b_0_btn = Button(text='B', callback_data='next_0_b')
+a_0_btn = Button(text='A', callback_data='next_0_A')
+b_0_btn = Button(text='B', callback_data='next_0_B')

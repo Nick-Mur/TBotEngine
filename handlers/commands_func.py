@@ -516,6 +516,9 @@ async def code(message: Message, command: CommandObject) -> None:
     Обработчик команды /code для работы с промокодами.
 
     Поддерживает создание, удаление и активацию промокодов.
+    /code create 123 100 5 - создать 5 промокодов 123 на 100 токенов
+    /code 123 - ввести промокод 123
+    /code delete 123 - удалить все промокоды 123
     """
     if command.args:
         args = command.args.split()

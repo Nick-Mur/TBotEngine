@@ -2,6 +2,7 @@ DEBUG = True
 DB_PATH = 'database\project.db'
 MEDIA_PHOTO = 'resources/media/images/'
 SPECIAL_PHRASES = 'resources.phrases'
+MESSAGE_MAP = 'utils/maps_txtf/'
 
 CHANNEL_IDS = [
     '@pantheon_developers',

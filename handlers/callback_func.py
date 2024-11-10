@@ -19,7 +19,7 @@ from settings.special_func import return_variable
 
 from traceback import print_exc
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 router = Router()
 
@@ -44,22 +44,12 @@ async def next_0_msg(call: CallbackQuery) -> None:
         method=Method.FIRST
     )
 
-    message: List[Dict[str, Any]] = await return_variable(f'message_0_{message_id}')
+    message = await return_variable(f'message_0_{message_id}')
     if len(message) > msg_id + 1:
         msg_id += 1
     else:
-        choice: Optional[str] = data[1] if len(data) > 1 else None
-        if choice:
-            await db(
-                table=Tables.CHOICES,
-                data={
-                    Columns.TG_ID: tg_id,
-                    Columns.MESSAGE_ID: message_id,
-                    Columns.RESULT_CHOICES: choice
-                },
-                operation=Func.ADD
-            )
-        message_id = await find_next_message_0(message_id, choice=choice)
+        choice = data[1] if len(data) > 1 else None
+        message_id = await find_next_message_0(message_id=message_id, choice=choice, tg_id=tg_id)
         msg_id = 0
         db_data.update({Columns.MESSAGE_ID: message_id})
         message = await return_variable(f'message_0_{message_id}')
