@@ -1,7 +1,7 @@
 from aiogram import html
 
 
-async def blockquote(text):
+def bl_quote(text):
     quote_text = html.quote(text)
     return html.blockquote(quote_text)
 

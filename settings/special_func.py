@@ -1,4 +1,4 @@
-from app.consts import SPECIAL_PHRASES
+from app.consts import SPECIAL_PHRASES, TOKENS_SPECIAL_MEMBER
 from settings.config_reader import config
 
 from resources.buttons import *
@@ -22,7 +22,12 @@ def get_bot_token() -> str:
     Возвращает:
         str: Токен бота.
     """
-    return config.bot_token.get_secret_value()
+
+    from app.consts import DEBUG
+
+    if DEBUG:
+        return config.bot_token_test.get_secret_value()
+    return config.bot_token_work.get_secret_value()
 
 
 def get_webhook_host() -> str:
@@ -92,7 +97,7 @@ async def monitor_unsubscribes() -> None:
                     method=Method.FIRST
                 )
                 # Проверка подписки на все каналы
-                subscribed_count = sum(subscription_results.values())
+                subscribed_count = TOKENS_SPECIAL_MEMBER if TOKENS_SPECIAL_MEMBER else sum(subscription_results.values())
                 # Обновляем количество токенов
                 await db(
                     table=Tables.GAME,
