@@ -12,7 +12,7 @@ from aiogram.types import CallbackQuery
 from database.db_operation import db
 from database.core.db_consts import Func, Method, Tables, Columns, Operators
 
-from app.consts import DEBUG
+from app.consts import DEBUG, TOKENS_NEXT, TOKENS_ADD
 from app.temporary_data import sent_messages
 
 from settings.special_func import return_variable
@@ -48,6 +48,22 @@ async def next_0_msg(call: CallbackQuery) -> None:
     if len(message) > msg_id + 1:
         msg_id += 1
     else:
+        if not DEBUG:
+            # Получаем текущее количество токенов
+            tokens: int = await db(
+                table=Tables.GAME,
+                filters={Columns.TG_ID: (Operators.EQ, tg_id)},
+                data=Columns.TOKENS,
+                method=Method.FIRST
+            )
+
+            # Обновляем количество токенов
+            await db(
+                table=Tables.GAME,
+                filters={Columns.TG_ID: (Operators.EQ, tg_id)},
+                data={Columns.TOKENS: tokens - TOKENS_NEXT},
+                operation=Func.UPDATE
+            )
         choice = data[1] if len(data) > 1 else None
         message_id = await find_next_message_0(message_id=message_id, choice=choice, tg_id=tg_id)
         msg_id = 0
@@ -145,7 +161,7 @@ async def close_message(call: CallbackQuery) -> None:
         await db(
             table=Tables.GAME,
             filters={Columns.TG_ID: (Operators.EQ, tg_id)},
-            data={Columns.TOKENS: tokens + 1},
+            data={Columns.TOKENS: tokens + TOKENS_ADD},
             operation=Func.UPDATE
         )
 

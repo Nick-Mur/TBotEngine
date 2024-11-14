@@ -12,6 +12,7 @@
    - [Добавление новых языков](#добавление-новых-языков)
 6. [Объединение фраз, медиа и клавиатур в сообщения](#6-объединение-фраз-медиа-и-клавиатур-в-сообщения)
 7. [Работа с картой](#7-работа-с-картой)
+8. [.env](#8-env)
 
 ---
 
@@ -179,6 +180,55 @@ message_0_0 = [
 - **to_id**: Следующий этап (вторая цифра).
 - **condition**: Условие перехода (в квадратных скобках).
 
+---
+
+## 8. .env
+
+Для успешной работы бота необходимо создать файл .env в основной директории
+
+**Наполнение:**
+
+```python
+BOT_TOKEN_TEST = ...
+BOT_TOKEN_WORK = ...
+WEBHOOK_HOST = None  # Установите 'https://yourdomain.com' для вебхуков или None для polling
+
+```
+
+- `BOT_TOKEN_TEST`: Токен для тестового бота (получается у BotFather).
+- `BOT_TOKEN_WORK`: Токен для общего бота.
+- `WEBHOOK_HOST`: Хост, если есть/нужен.
+
+---
+
+## 9. consts
+
+Для персонализации бота необходимо создать файл consts.py и поместить его в папку app
+
+**Наполнение:**
+
+```python
+DEBUG = True
+DB_PATH = 'database\project.db'
+MEDIA_PHOTO = 'resources/media/images/'
+SPECIAL_PHRASES = 'resources.phrases'
+MESSAGE_MAP = 'utils/maps_txtf/'
+TOKENS_ADD = 1
+TOKENS_NEXT = 1
+TOKENS_SPECIAL_MEMBER = None
+TOKENS_REFERRAL = 3
+
+CHANNEL_IDS = [
+    '...',
+    '@test'
+]
+
+ADMINS = [123]
+OWNER = 123
+```
+P.s. Не рекомендуется изменять пути
+
+---
 
 ## Заключение
 

@@ -14,7 +14,7 @@ from aiogram.types import (
     PreCheckoutQuery,
 )
 
-from app.consts import DEBUG, ADMINS, OWNER
+from app.consts import DEBUG, ADMINS, OWNER, TOKENS_REFERRAL
 from app.temporary_data import sent_messages
 
 from traceback import print_exc
@@ -117,7 +117,7 @@ async def start(message: Message, command: CommandObject) -> None:
 
     tg_id: int = message.from_user.id
 
-    referral_link = command.args
+    referral_link = None if not command else command.args
     if (
         referral_link
         and referral_link.isdigit()
@@ -137,7 +137,7 @@ async def start(message: Message, command: CommandObject) -> None:
         await db(
             table=Tables.GAME,
             filters={Columns.TG_ID: (Operators.EQ, int(referral_link))},
-            data={Columns.TOKENS: tokens + 3},
+            data={Columns.TOKENS: tokens + TOKENS_REFERRAL},
             operation=Func.UPDATE,
         )
 
@@ -763,6 +763,5 @@ async def check_user(message: Message) -> None:
         data=Columns.ID,
     )
     if not user:
-        await start(message=message)
         return False
     return True

@@ -5,7 +5,8 @@ from pydantic import SecretStr
 class Settings(BaseSettings):
     # Желательно вместо str использовать SecretStr
     # для конфиденциальных данных, например, токена бота
-    bot_token: SecretStr
+    bot_token_test: SecretStr
+    bot_token_work: SecretStr
     webhook_host: SecretStr
 
     # Начиная со второй версии pydantic, настройки класса настроек задаются
