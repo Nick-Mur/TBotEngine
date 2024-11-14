@@ -1,18 +1,4 @@
-# TBotEngine
-
-## Оглавление
-
-1. [Описание проекта](#описание-проекта)
-2. [Особенности](#особенности)
-3. [Установка](#установка)
-4. [Структура проекта](#структура-проекта)
-5. [Как с этим работать](#как-с-этим-работать)
-    - [Расширение команд](#расширение-команд)
-    - [Добавление фраз и медиа](#добавление-фраз-и-медиа)
-    - [Добавление шрифтов](#добавление-шрифтов)
-    - [Редактирование связей между сообщениями](#редактирование-связей-между-сообщениями)
-    - [Редактирование констант](#редактирование-констант)
-6. [Лицензия](#лицензия)
+# Разработка Игры на Движке
 
 ## Описание проекта
 
@@ -53,351 +39,247 @@
    pip install -r requirements.txt
    ```
 
-5. **Создайте файл `.env`** в корневой директории проекта и добавьте необходимые переменные окружения:
+## Далее будет описание того, как работать с движком.
 
-   ```env
-   BOT_TOKEN=ваш_токен_бота
-   WEBHOOK_HOST=ваш_хост_вебхука_если_используется
-   ```
+## Содержание
 
-6. **Запустите бота:**
+1. [Создание новых кнопок](#1-создание-новых-кнопок)
+2. [Объединение кнопок в новые клавиатуры](#2-объединение-кнопок-в-новые-клавиатуры)
+3. [Добавление медиа](#3-добавление-медиа)
+4. [Запись медиа в переменные](#4-запись-медиа-в-переменные)
+5. [Написание новых фраз](#5-написание-новых-фраз)
+   - [Добавление новых языков](#добавление-новых-языков)
+6. [Объединение фраз, медиа и клавиатур в сообщения](#6-объединение-фраз-медиа-и-клавиатур-в-сообщения)
+7. [Работа с картой](#7-работа-с-картой)
+8. [.env](#8-env)
+9. [consts](#9-consts)
+10. [Заключение](#заключение)
 
-   ```bash
-   python main.py
-   ```
+---
 
-   - Если вы используете вебхук, убедитесь, что `WEBHOOK_HOST` настроен правильно и доступен по HTTPS.
-   - Если вы используете polling, оставьте `WEBHOOK_HOST` пустым или установите в `None` в файле `.env`.
+## 1. Создание новых кнопок
 
-## Структура проекта
+Кнопки в боте создаются с использованием класса `InlineKeyboardButton` из библиотеки Aiogram. Каждая кнопка имеет текст и действие, которое выполняется при её нажатии.
 
-```
-TBotEngine/
-├── .env
-├── .gitignore
-├── README.md
-├── requirements.txt
-├── app/
-│   ├── __init__.py
-│   ├── bot.py
-│   └── consts.py
-├── main.py
-├── database/
-│   ├── __init__.py
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── db_session.py
-│   │   └── db_consts.py
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── choices.py
-│   │   ├── game.py
-│   │   ├── promo.py
-│   │   ├── transactions.py
-│   │   └── user.py
-│   ├── db_operations.py
-│   └── project.db
-├── find_message/
-│   ├── __init__.py
-│   └── find_message_0.py
-├── handlers/
-│   ├── __init__.py
-│   ├── callbacks.py
-│   ├── commands.py
-│   └── messages.py
-├── middlewares/
-│   ├── __init__.py
-│   ├── custom_middleware.py
-│   └── special_func.py
-├── resources/
-│   ├── __init__.py
-│   ├── buttons.py
-│   ├── keyboards.py
-│   ├── media/
-│   │   ├── __init__.py
-│   │   ├── images/
-│   │   │   ├── photo_1.jpg
-│   │   │   └── photo_2.jpg
-│   │   ├── media_0.py
-│   │   └── media_1.py
-│   ├── messages/
-│   │   ├── __init__.py
-│   │   ├── messages_0.py
-│   │   ├── messages_1.py
-│   │   └── find_message_0.py
-│   └── phrases/
-│       ├── __init__.py
-│       ├── phrases_0.py
-│       ├── phrases_1.py
-│       └── special_phrases.py
-├── settings/
-│   ├── __init__.py
-│   └── config_reader.py
-└── utils/
-    ├── __init__.py
-    ├── decorators.py
-    ├── edit_func.py
-    ├── message_utils.py
-    ├── media_functions_0.py
-    └── media_functions_1.py
+**Пример создания кнопки:**
+
+```python
+from aiogram.types import InlineKeyboardButton
+
+button_start = InlineKeyboardButton(text="Начать игру", callback_data="A")
 ```
 
-### Разъяснение структуры
+- `text`: Текст, отображаемый на кнопке.
+- `callback_data`: Данные, которые будут отправлены боту при нажатии на кнопку.
 
-- **app/**: Инициализация бота и основные константы.
-  - `bot.py`: Создание экземпляров бота и диспетчера.
-  - `consts.py`: Глобальные константы проекта.
+Добавление кнопок происходит в 'resources/buttons.py'
 
-- **main.py**: Точка входа в приложение, запуск бота и настройка вебхука или polling.
+**Пример кнопки:**
 
-- **database/**: Все, что связано с базой данных.
-  - `core/`: Основные инструменты для работы с БД.
-    - `db_session.py`: Создание сессий для работы с БД.
-    - `db_consts.py`: Константы для работы с БД.
-  - `models/`: Модели SQLAlchemy.
-    - `user.py`, `game.py`, `promo.py` и др.: Определение таблиц базы данных.
-  - `db_operations.py`: Функции для операций с БД.
-  - `project.db`: Файл базы данных SQLite.
+```python
+close_btn = Button(text='❌', callback_data='close')
+```
+P.s. вместо InlineKeyboardButton используется сокращение Button
 
-- **find_message/**: Логика связи между сообщениями.
-  - `find_message_0.py`: Файл, в котором определяются связи между сообщениями.
+**Советы:**
 
-- **handlers/**: Обработчики событий Telegram.
-  - `commands.py`: Обработка команд, таких как `/start`, `/help`.
-  - `callbacks.py`: Обработка callback-запросов от inline-кнопок.
-  - `messages.py`: Обработка текстовых сообщений от пользователей.
+- Используйте понятные и краткие тексты для кнопок.
+- `callback_data` должен содержать результат выбора, сам выбор должен быть описан в сообщение.
 
-- **middlewares/**: Промежуточные слои для обработки обновлений.
-  - `custom_middleware.py`: Пользовательские middleware.
-  - `special_func.py`: Специальные функции для обработки обновлений.
+---
 
-- **resources/**: Ресурсы проекта.
-  - `buttons.py`: Определение inline-кнопок.
-  - `keyboards.py`: Сборка клавиатур из кнопок.
-  - `media/`: Медиафайлы и их описание.
-    - `images/`: Папка с изображениями.
-    - `media_0.py`, `media_1.py`: Модули с описанием медиафайлов.
-  - `messages/`: Сообщения бота.
-    - `messages_0.py`, `messages_1.py`: Определение сообщений.
-    - `find_message_0.py`: Логика переходов между сообщениями.
-  - `phrases/`: Текстовые фразы.
-    - `phrases_0.py`, `phrases_1.py`, `special_phrases.py`: Фразы для различных ситуаций.
+## 2. Объединение кнопок в новые клавиатуры
 
-- **settings/**: Настройки проекта.
-  - `config_reader.py`: Чтение переменных окружения из `.env`.
+Клавиатуры позволяют объединять кнопки в группы и отправлять их вместе с сообщением. Для создания клавиатуры используйте класс `InlineKeyboardMarkup`.
 
-- **utils/**: Утилитарные функции и декораторы.
-  - `decorators.py`: Декораторы для форматирования текста.
-  - `edit_func.py`: Функции для редактирования сообщений.
-  - `message_utils.py`: Утилиты для работы с сообщениями.
-  - `media_functions_0.py`, `media_functions_1.py`: Функции для работы с медиа.
+**Пример создания клавиатуры с двумя кнопками в одной строке:**
 
-## Как с этим работать
+```python
+from aiogram.types import InlineKeyboardMarkup
 
-### 1. Расширение команд
+keyboard_main = InlineKeyboardMarkup(row_width=2)
+keyboard_main.add(button_start, button_help)
+```
 
-Вы можете добавлять новые команды, расширяя функциональность бота.
+- `row_width`: Количество кнопок в одной строке.
+- Метод `add`: Добавляет кнопки в клавиатуру слева направо.
 
-**Как добавить новую команду:**
+**Добавление кнопок в разные строки:**
 
-1. **Создайте функцию-обработчик** в файле `handlers/commands.py` или создайте новый файл в `handlers/`.
+```python
+keyboard = InlineKeyboardMarkup()
+keyboard.row(button1, button2)
+keyboard.add(button3)
+```
 
-   ```python
-   # handlers/commands.py
-   from aiogram import Router
-   from aiogram.types import Message
+- `row()`: Создаёт новую строку с указанными кнопками.
+- `add()`: Добавляет кнопку в новую строку.
 
-   router = Router()
+---
 
-   @router.message(commands=['my_command'])
-   async def my_command_handler(message: Message):
-       await message.reply("Это моя новая команда!")
-   ```
+Добавление клавиатур происходит в 'resources/keyboards.py'
 
-2. **Подключите новый роутер** в `main.py`:
+**Пример клавиатуры:**
 
-   ```python
-   # main.py
-   from handlers import commands
+```python
+basic_0 = [[back_0_btn, next_0_btn]]
+back_0 = [[back_0_btn]]
+```
+P.s. движок сам преобразуется подобные массивы в клавиатуры. Внешние [] - сама клавиатура, внутренние [] - строчка
 
-   dp.include_router(commands.router)
-   ```
 
-### 2. Добавление фраз и медиа
+## 3. Добавление медиа
 
-Вы можете создавать свои собственные фразы и добавлять медиа, объединяя их в сообщения.
+Медиа-контент (изображения, видео, аудио) добавляются в 'resources/media' и далее в соответсвующую папку (например, images).
 
-**Как добавить новые фразы:**
+## 4. Запись медиа в переменные
 
-1. **Создайте новый файл** в `resources/phrases/`, например, `phrases_custom.py`.
+Название файла необходимо записывать в переменные в 'resources/media/media_py/media_0.py'.
 
-   ```python
-   # resources/phrases/phrases_custom.py
-   phrases_dict = {
-       'welcome': 'Добро пожаловать!',
-       'farewell': 'До свидания!'
-   }
-   ```
+**Пример:**
 
-2. **Импортируйте и используйте фразы** в вашем коде:
+```python
+media_0_0_0 = 'snapedit_1722016659293.jpeg'
+```
 
-   ```python
-   from resources.phrases.phrases_custom import phrases_dict
+**Советы:**
 
-   await message.reply(phrases_dict['welcome'])
-   ```
+- Вторая цифра отвечает за блок (сообщение), третья - за номер фразы, к которой привязан медиа файл.
 
-**Как добавить новые медиа:**
+---
 
-1. **Поместите файлы медиа** в папку `resources/media/images/`.
+## 5. Написание новых фраз
 
-2. **Определите медиафайлы** в соответствующем модуле, например, `media_custom.py`:
+Все фразы хранятся в переменных в 'resources/phrases/' и далее нужный язык.
 
-   ```python
-   # resources/media/media_custom.py
-   media_files = {
-       'welcome_image': 'welcome.jpg',
-       'goodbye_image': 'goodbye.jpg'
-   }
-   ```
+**Пример:**
 
-3. **Используйте медиафайлы** в сообщениях:
+```python
+ru_phrase_0_0_0 = 'Всем привет!'
+```
 
-   ```python
-   from resources.media.media_custom import media_files
-   from aiogram.types import FSInputFile
+**Советы:**
 
-   image = FSInputFile(f"resources/media/images/{media_files['welcome_image']}")
-   await bot.send_photo(chat_id=message.chat.id, photo=image)
-   ```
+- Также можно добавлять свои особые выделение через функции в файле 'utils/decorate_text.py'
 
-**Объединение фраз и медиа в сообщения:**
+### Добавление новых языков
 
-1. **Создайте новое сообщение** в `resources/messages/`, например, `messages_custom.py`:
+Добавление новых происходит по средстам добавления новых кнопок в языковую клавиатуру.
 
-   ```python
-   # resources/messages/messages_custom.py
-   message_welcome = {
-       'text': 'welcome',
-       'media': 'welcome_image',
-       'keyboard': 'main_keyboard'
-   }
-   ```
+**Пример кнопки:**
 
-2. **Обновите обработчик для отправки этого сообщения**:
+```python
+rus_btn = Button(text="Русский", callback_data="language_ru")
+```
 
-   ```python
-   from resources.messages.messages_custom import message_welcome
-   from utils.message_utils import update_msg
+**Сама клавиатура:**
 
-   async def send_welcome_message(message: Message):
-       msg = await update_msg(message_welcome, message)
-       await message.answer_photo(photo=msg['media'], caption=msg['text'], reply_markup=msg['keyboard'])
-   ```
+```python
+language_keyboard = Keyboard(inline_keyboard=[[close_btn], [rus_btn, eng_btn]])
+```
 
-### 3. Добавление шрифтов
+Также важно, фразы находятся в соответствующих папках!
 
-Вы можете добавлять свои собственные шрифты или стили для форматирования текста.
+---
 
-**Как добавить новый шрифт или стиль:**
+## 6. Объединение фраз, медиа и клавиатур в сообщения
 
-1. **Добавьте функцию-декоратор** в `utils/decorators.py`:
+Теперь, когда у вас есть фразы, медиа и клавиатуры, их можно объединять для отправки пользователю в 'resources/messages/messages_0'.
 
-   ```python
-   # utils/decorators.py
+**Пример сообщения:**
 
-   def italic(text):
-       return f"<i>{text}</i>"
-   ```
+```python
+message_0_0 = [
+    {text: 'phrase_0_0_0', media: 'media_0_0_0', keyboard: 'next_0'},
+    {text: 'phrase_0_0_1', media: 'media_0_0_0'},
+    {text: 'phrase_0_0_2', media: 'media_0_0_1', keyboard: 'ab_0'}
+]
+```
 
-2. **Используйте декоратор** в вашем коде:
+**Советы:**
 
-   ```python
-   from utils.decorators import italic
+- Клаиавиатура по умолчанию - стрелка вперёд и назад.
 
-   formatted_text = italic("Это курсивный текст")
-   await message.reply(formatted_text, parse_mode='HTML')
-   ```
+---
 
-### 4. Редактирование связей между сообщениями
+## 7. Работа с картой
 
-Вы можете редактировать связи между сообщениями в файле `find_message/find_message_0.py`.
+Карта игры определяет логику переходов между состояниями или этапами игры. Она  реализована в виде внешнего файла, описывающего связи между сообщениями.
 
-**Как редактировать связи:**
+**Пример карты в текстовом файле `utils/maps_txtf/map_0.txt`:**
 
-1. **Откройте файл** `find_message/find_message_0.py`.
+```
+1 > 2
+2 > 3
+3 > 4 [1=A + 2=B]
+3 > 5 [1=B + 2=A]
+3 > 6 [1=C + 3=A]
+3 > 7 [else]
+```
 
-2. **Добавьте или измените связи между сообщениями**:
+- **from_id**: Текущий этап (первая цифра).
+- **to_id**: Следующий этап (вторая цифра).
+- **condition**: Условие перехода (в квадратных скобках).
 
-   ```python
-   # find_message/find_message_0.py
+---
 
-   message_flow = {
-       'start': 'message_0',
-       'message_0': {
-           'next': 'message_1',
-           'options': {
-               'option_a': 'message_2a',
-               'option_b': 'message_2b'
-           }
-       },
-       'message_1': {
-           'next': 'message_end'
-       },
-       # Добавьте свои сообщения и связи
-   }
-   ```
+## 8. .env
 
-3. **Используйте эти связи** в обработчиках для навигации:
+Для успешной работы бота необходимо создать файл .env в основной директории
 
-   ```python
-   # handlers/messages.py
+**Наполнение:**
 
-   from find_message.find_message_0 import message_flow
+```python
+BOT_TOKEN_TEST = ...
+BOT_TOKEN_WORK = ...
+WEBHOOK_HOST = None  # Установите 'https://yourdomain.com' для вебхуков или None для polling
 
-   async def navigate_messages(message: Message):
-       current_state = 'start'
-       next_message_key = message_flow[current_state]['next']
-       # Логика для отправки следующего сообщения
-   ```
+```
 
-### 5. Редактирование констант
+- `BOT_TOKEN_TEST`: Токен для тестового бота (получается у BotFather).
+- `BOT_TOKEN_WORK`: Токен для общего бота.
+- `WEBHOOK_HOST`: Хост, если есть/нужен.
 
-Вы можете изменять константы в файле `app/consts.py` для настройки приложения.
+---
 
-**Доступные константы и их описание:**
+## 9. consts
 
-- `DEBUG`: Режим отладки (True/False). При `True` выводится дополнительная информация об ошибках.
-- `DB_PATH`: Путь к файлу базы данных SQLite.
-- `MEDIA_PHOTO`: Путь к директории с изображениями.
-- `CHANNEL_IDS`: Список каналов, на которые должен быть подписан пользователь.
-- `ADMINS`: Список Telegram ID администраторов бота.
-- `OWNER`: Telegram ID владельца бота.
+Для персонализации бота необходимо создать файл consts.py и поместить его в папку app
 
-**Как редактировать константы:**
+**Наполнение:**
 
-1. **Откройте файл** `app/consts.py`.
+```python
+DEBUG = True
+DB_PATH = 'database\project.db'
+MEDIA_PHOTO = 'resources/media/images/'
+SPECIAL_PHRASES = 'resources.phrases'
+MESSAGE_MAP = 'utils/maps_txtf/'
+TOKENS_ADD = 1
+TOKENS_NEXT = 1
+TOKENS_SPECIAL_MEMBER = None
+TOKENS_REFERRAL = 3
 
-2. **Измените значения констант** по своему усмотрению:
+CHANNEL_IDS = [
+    '...',
+    '@test'
+]
 
-   ```python
-   # app/consts.py
+ADMINS = [123]
+OWNER = 123
+```
+P.s. Не рекомендуется изменять пути
 
-   DEBUG = False
-   DB_PATH = 'database/my_custom_db.db'
-   MEDIA_PHOTO = 'resources/media/images/'
-   CHANNEL_IDS = ['@my_channel']
-   ADMINS = [123456789]
-   OWNER = 123456789
-   ```
+---
 
-   - **Пример использования констант**:
+## Заключение
 
-     ```python
-     # Использование константы CHANNEL_IDS для проверки подписки
-     from app.consts import CHANNEL_IDS
+Следуя этому руководству, вы сможете создавать интерактивные игры на основе нашего движка. Главное — структурировать свой код и ресурсы, чтобы облегчить разработку и поддержку проекта.
 
-     async def check_user_subscription(user_id):
-         for channel in CHANNEL_IDS:
-             # Логика проверки подписки пользователя на канал
-     ```
+**Дополнительные ресурсы:**
+
+- [Документация Aiogram](https://docs.aiogram.dev/en/latest/)
+- [Официальное руководство по боту Telegram](https://core.telegram.org/bots)
+
+---
+
+**Примечание:** Данное руководство предоставляет общие рекомендации по разработке игры на движке. Детали реализации могут варьироваться в зависимости от конкретных требований и архитектуры проекта.
